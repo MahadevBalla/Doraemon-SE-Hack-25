@@ -3,7 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import productRoutes from './routes/productRoutes.js';
 import userRoutes from './routes/user.routes.js';
-import movementRoutes from './routes/movementRouters.js';
+import movementRoutes from './routes/movements.routes.js';
 import warehouseRoutes from "./routes/warehouse.routes.js";
 import alertsRoutes from "./routes/alerts.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
