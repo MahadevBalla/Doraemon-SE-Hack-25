@@ -9,10 +9,9 @@ const WarehouseSchema = new mongoose.Schema({
         postalCode: String,
         // coordinates: { type: [Number], index: '2dsphere' }
     },
-    product: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Product', 
-        required: true 
+    quantity:{
+        type:Number,
+        default:0
     },
     capacity: Number,
     currentOccupancy: Number,

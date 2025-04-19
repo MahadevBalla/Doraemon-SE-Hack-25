@@ -7,11 +7,10 @@ export const createWarehouse = asyncHandler(async (req, res) => {
         location,
         capacity,
         currentOccupancy,
-        manager,
         contact
     } = req.body;
 
-    if (!name || !location || !manager) {
+    if (!name || !location) {
         return res.status(400).json({ message: "Required fields are missing" });
     }
 
@@ -20,7 +19,6 @@ export const createWarehouse = asyncHandler(async (req, res) => {
         location,
         capacity,
         currentOccupancy,
-        manager,
         contact
     });
 

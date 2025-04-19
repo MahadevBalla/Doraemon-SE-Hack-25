@@ -5,8 +5,8 @@ const ProductSchema = new mongoose.Schema({
     ref: 'Warehouse', 
     required: true 
     },
-    intialStock:{type:Number, default:0},
-    sku: { type: String, required: true, unique: true },
+    stock:{type:Number, default:0},
+    // sku: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     description: String,
     category: { type: String, index: true },
@@ -16,9 +16,8 @@ const ProductSchema = new mongoose.Schema({
     minStockLevel: Number,
     isPerishable: Boolean,
     defaultExpiryDays: Number,
-    attributes: mongoose.Schema.Types.Mixed,
-    imageUrl: String,
-    isActive: { type: Boolean, default: true }
+    // attributes: mongoose.Schema.Types.Mixed,
+    // imageUrl: String,
 }, { timestamps: true });
 const Product = mongoose.model('Product', ProductSchema);
 export default Product;
