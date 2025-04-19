@@ -18,9 +18,11 @@ app.use(express.static("public")) //all static files are in public folder
 app.use(cookieParser())
 
 //routes import 
+import userRoutes from "./routes/user.routes.js";
 
 
 //routes declaration
+app.use("/api/v1/user", userRoutes);
 
 
 export default app;
