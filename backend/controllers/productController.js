@@ -1,5 +1,5 @@
 // controllers/productController.js
-import Product from '../models/Product.js';
+import Product from '../models/Products.js';
 
 // Get all products
 export const getProducts = async (req, res) => {
