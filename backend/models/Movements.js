@@ -48,4 +48,5 @@ MovementSchema.index({ product: 1, createdAt: 1 });
 MovementSchema.index({ type: 1, createdAt: 1 });
 MovementSchema.index({ initiatedBy: 1, createdAt: 1 });
 
-export const Movements = mongoose.model("Movements", MovementSchema);
+const Movement = mongoose.model("Movement", MovementSchema);
+export default Movement;

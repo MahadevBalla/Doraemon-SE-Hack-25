@@ -1,7 +1,8 @@
 import Product from '../models/Products.js';
 import Inventory from '../models/Inventory.js';
 import mongoose from 'mongoose';
-import { handleMovement } from '../utils/handleMovement.js';
+import bar from '/utils/barcodeGenAPI'
+// import { handleMovement } from '../utils/handleMovement.js';
 
 // Get all products
 export const getProducts = async (req, res) => {
@@ -26,36 +27,29 @@ export const getProducts = async (req, res) => {
 
 // Create new product
 export const createProduct = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-        const { name, sku, initialStock = 0, warehouseId } = req.body;
+        // Destructure required fields and others
+        const { name, warehouse, stock, ...otherFields } = req.body;
+        const barCode = bar.generator();
+        // Create product with validated schema fields
+        const product = new Product({
+            name,
+            warehouse,
+            stock: stock || 0,  // Default to 0 if not provided
+            
+        });
 
-        const product = new Product({ name, sku, ...req.body });
-        await product.save({ session });
-
-        if (initialStock > 0 && warehouseId) {
-            await handleMovement({
-                type: 'adjustment',
-                product: product._id,
-                quantity: initialStock,
-                toWarehouse: warehouseId,
-                initiatedBy: req.user.id,
-                session
-            });
-        }
-
-        await session.commitTransaction();
-        res.status(201).json(product);
+        // Save to database
+        const savedProduct = await product.save();
+        
+        res.status(201).json(savedProduct);
     } catch (error) {
-        await session.abortTransaction();
-        res.status(400).json({ message: error.message });
-    } finally {
-        session.endSession();
+        res.status(400).json({ 
+            message: 'Product creation failed',
+            error: error.message 
+        });
     }
 };
-
 // Update product
 export const updateProduct = async (req, res) => {
     const session = await mongoose.startSession();

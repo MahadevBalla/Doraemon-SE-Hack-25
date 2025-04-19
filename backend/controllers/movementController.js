@@ -1,5 +1,5 @@
 // controllers/movementController.js
-import Movements from '../models/Movements.js';
+import Movement from '../models/Movements.js';
 import Inventory from '../models/Inventory.js';
 import Product from '../models/Products.js';
 import Alert from '../models/Alerts.js';
