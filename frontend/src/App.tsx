@@ -26,9 +26,10 @@ const ProtectedLayout = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user exists in localStorage
-    const user = localStorage.getItem("user");
-    setIsAuthenticated(!!user);
+    // Check if user exists in localStorage OR sessionStorage
+    const localUser = localStorage.getItem("user");
+    const sessionUser = sessionStorage.getItem("user");
+    setIsAuthenticated(!!(localUser || sessionUser));
     setIsLoading(false);
   }, []);
 

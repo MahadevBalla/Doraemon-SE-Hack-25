@@ -6,18 +6,22 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   // Validation
   if (!username || !email || !password || !role) {
-    return res.status(400).json({ message: "Required fields: username, email, password, role" });
+    return res
+      .status(400)
+      .json({ message: "Required fields: username, email, password, role" });
   }
 
-  if (role !== 'admin' && !assignedWarehouse) {
-    return res.status(400).json({ 
-      message: "Warehouse assignment is required for non-admin roles" 
+  if (role !== "admin" && !assignedWarehouse) {
+    return res.status(400).json({
+      message: "Warehouse assignment is required for non-admin roles",
     });
   }
 
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
   if (existingUser) {
-    return res.status(409).json({ message: "Email or username already exists" });
+    return res
+      .status(409)
+      .json({ message: "Email or username already exists" });
   }
 
   const newUser = new User({
@@ -25,7 +29,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     email,
     passwordHash: password, // Will be hashed by pre-save hook
     role,
-    assignedWarehouse: role === 'admin' ? undefined : assignedWarehouse
+    assignedWarehouse: role === "admin" ? undefined : assignedWarehouse,
   });
 
   await newUser.save();
@@ -44,18 +48,19 @@ export const registerUser = asyncHandler(async (req, res) => {
       username: newUser.username,
       email: newUser.email,
       role: newUser.role,
-      assignedWarehouse: newUser.assignedWarehouse
+      assignedWarehouse: newUser.assignedWarehouse,
     },
-    tokens: { accessToken, refreshToken }
+    tokens: { accessToken, refreshToken },
   });
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
-  const { username, password } = req.body; // Now only needs username + password
+  console.log("Login attempt with:", req.body);
+  const { username, password, role } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ 
-      message: "Username and password are required" 
+  if (!username || !password || !role) {
+    return res.status(400).json({
+      message: "Username and password are required",
     });
   }
 
@@ -85,8 +90,8 @@ export const loginUser = asyncHandler(async (req, res) => {
       username: user.username,
       email: user.email,
       role: user.role,
-      assignedWarehouse: user.assignedWarehouse
+      assignedWarehouse: user.assignedWarehouse,
     },
-    tokens: { accessToken, refreshToken }
+    tokens: { accessToken, refreshToken },
   });
 });

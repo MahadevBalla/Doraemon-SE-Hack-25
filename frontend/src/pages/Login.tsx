@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, User } from "lucide-react";
+import axios from "axios";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -17,27 +18,16 @@ import { useToast } from "@/components/ui/use-toast";
 
 // Form schema
 const loginFormSchema = z.object({
-    username: z.string().min(3, "Username must be at least 3 characters"),
+    username: z.string().min(1, "Username is required"),
     password: z.string().min(6, "Password must be at least 6 characters"),
-    role: z.enum(["admin", "manager", "staff"], {
-        required_error: "Please select a role",
-    }),
+    role: z.string().min(1, "Role is required"),
     rememberMe: z.boolean().default(false),
 });
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
-// Mock warehouse data
-const mockWarehouses = {
-    admin: [],
-    manager: [
-        { _id: "w1", name: "North Warehouse" },
-        { _id: "w2", name: "South Warehouse" },
-    ],
-    staff: [
-        { _id: "w1", name: "North Warehouse" },
-    ]
-};
+// API base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
 const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
@@ -55,38 +45,66 @@ const Login = () => {
         defaultValues: {
             username: "",
             password: "",
+            role: "",
             rememberMe: false,
         },
     });
+
+    const handleRoleChange = (value: string) => {
+        setValue("role", value);
+    };
 
     const onSubmit = async (data: LoginFormValues) => {
         setIsLoading(true);
 
         try {
-            // Simulating API call with timeout
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-
-            // Create user object with role-based warehouses
-            const user = {
+            // Call backend API to authenticate user
+            const response = await axios.post(`${API_BASE_URL}/user/login`, {
                 username: data.username,
+                password: data.password,
                 role: data.role,
-                warehouses: mockWarehouses[data.role],
-            };
+            }, {
+                withCredentials: true
+            });
 
-            // Store user data in localStorage
-            localStorage.setItem("user", JSON.stringify(user));
+            console.log("Server response:", response);
+            console.log("response.data:", response.data);
 
-            // Mock token
-            localStorage.setItem("token", "mock-jwt-token");
+            if (!response.data) {
+                throw new Error("No data received from server");
+            }
 
-            // Success handling
+            // Check if response has the expected structure
+            if (!response.data?.user || !response.data?.tokens?.accessToken) {
+                throw new Error("Invalid response structure from server");
+            }
+
+            // Extract user data and tokens
+            const { user, tokens } = response.data;
+            const { accessToken } = tokens;
+
+            const storage = data.rememberMe ? localStorage : sessionStorage;
+
+            // Store auth data based on "remember me" setting
+            if (data.rememberMe) {
+                localStorage.setItem("token", accessToken);
+                localStorage.setItem("user", JSON.stringify(user));
+            } else {
+                sessionStorage.setItem("token", accessToken);
+                sessionStorage.setItem("user", JSON.stringify(user));
+            }
+
+            // Set default authorization header for subsequent requests
+            axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+
+            // Success notification
             toast({
                 title: "Login successful",
-                description: `Welcome back, ${data.username}. You are logged in as ${data.role}.`,
+                description: `Welcome back, ${user.username}. You are logged in as ${user.role}.`,
             });
 
             // Redirect based on role
-            switch (data.role) {
+            switch (user.role) {
                 case "admin":
                     navigate("/");
                     break;
@@ -100,21 +118,32 @@ const Login = () => {
                     navigate("/");
             }
         } catch (error) {
-            // Error handling
-            console.error("Login failed:", error);
+            // Handle different types of errors
+            let errorMessage = "Login failed. Please try again.";
+
+            if (axios.isAxiosError(error)) {
+                const statusCode = error.response?.status;
+
+                if (statusCode === 401) {
+                    errorMessage = "Invalid email or password";
+                } else if (statusCode === 403) {
+                    errorMessage = "Your account has been deactivated";
+                } else if (statusCode === 404) {
+                    errorMessage = "Account not found";
+                } else if (statusCode >= 500) {
+                    errorMessage = "Server error. Please try again later";
+                }
+            }
+
             toast({
                 variant: "destructive",
                 title: "Login failed",
-                description: "Invalid credentials or server error. Please try again.",
+                description: errorMessage,
             });
+
+            console.error("Login failed:", error);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const handleRoleChange = (value: string) => {
-        if (value === "admin" || value === "manager" || value === "staff") {
-            setValue("role", value);
         }
     };
 
@@ -151,7 +180,8 @@ const Login = () => {
                                 <Label htmlFor="username">Username</Label>
                                 <Input
                                     id="username"
-                                    placeholder="johndoe"
+                                    type="text"
+                                    placeholder="Enter your username"
                                     {...register("username")}
                                     className={errors.username ? "border-red-500" : ""}
                                 />

@@ -59,12 +59,29 @@ export interface Alert {
 
 export interface Inventory {
   _id: string;
-  product: string | Product;
-  warehouse: string | Warehouse;
-  quantity: number;
+  product: {
+    name: string;
+    sku: string;
+  };
+  warehouse: string;
+  quantity: {
+    value: number;
+    unit: string;
+    threshold: number;
+  };
   allocatedQuantity: number;
+  status: 'normal' | 'low' | 'out-of-stock';
+  lastUpdated: Date;
+  batchInfo?: {
+    batchNumber?: string;
+    expiryDate?: Date;
+    manufacturingDate?: Date;
+    supplier?: string;
+  };
+  locationInWarehouse?: string;
   value?: {
     costPrice?: number;
+    retailPrice?: number;
     currency?: string;
   };
   createdAt: Date;

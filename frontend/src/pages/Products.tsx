@@ -12,83 +12,107 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { BarcodeGenerator } from "@/components/inventory/BarcodeGenerator";
+//import { BarcodeGenerator } from "@/components/inventory/BarcodeGenerator";
 import { StockThreshold } from "@/components/inventory/StockThreshold";
 
 const productsData = [
   {
     id: "prod-1",
     name: "Blue Widgets",
-    sku: "BW-1001",
+    description: "High-quality blue widgets for industrial use",
     category: "Electronics",
-    stockLevel: 142,
+    stock: 142,
     unit: "piece",
-    threshold: 25,
-    hasExpiry: false,
+    minStockLevel: 25,
+    isPerishable: false,
+    defaultExpiryDays: null,
+    barcode: "BLUEWIDGET001",
     status: "active",
   },
   {
     id: "prod-2",
     name: "Red Gadgets",
-    sku: "RG-2002",
+    description: "Premium red gadgets with extended warranty",
     category: "Electronics",
-    stockLevel: 87,
+    stock: 87,
     unit: "piece",
-    threshold: 20,
-    hasExpiry: false,
+    minStockLevel: 20,
+    isPerishable: false,
+    defaultExpiryDays: null,
+    barcode: "REDGADGET002",
     status: "active",
   },
   {
     id: "prod-3",
     name: "Green Widgets",
-    sku: "GW-3003",
+    description: "Eco-friendly green widgets (pack of 10)",
     category: "Office Supplies",
-    stockLevel: 253,
+    stock: 253,
     unit: "box",
-    threshold: 30,
-    hasExpiry: false,
+    minStockLevel: 30,
+    isPerishable: false,
+    defaultExpiryDays: null,
+    barcode: "GRNWIDGET003",
     status: "active",
   },
   {
     id: "prod-4",
     name: "Yellow Gadgets",
-    sku: "YG-4004",
+    description: "Industrial-grade yellow gadgets",
     category: "Electronics",
-    stockLevel: 12,
+    stock: 12,
     unit: "piece",
-    threshold: 20,
-    hasExpiry: false,
+    minStockLevel: 20,
+    isPerishable: false,
+    defaultExpiryDays: null,
+    barcode: "YLWGADGET004",
     status: "low_stock",
   },
   {
     id: "prod-5",
     name: "Purple Widgets",
-    sku: "PW-5005",
+    description: "Luxury purple widgets with warranty",
     category: "Office Supplies",
-    stockLevel: 78,
+    stock: 78,
     unit: "box",
-    threshold: 15,
-    hasExpiry: false,
+    minStockLevel: 15,
+    isPerishable: false,
+    defaultExpiryDays: null,
+    barcode: "PRPLWIDGET005",
     status: "active",
   },
   {
     id: "prod-6",
     name: "Medical Supplies",
-    sku: "MS-6006",
+    description: "Sterile medical supplies (expiry tracked)",
     category: "Pharmaceutical",
-    stockLevel: 45,
+    stock: 45,
     unit: "box",
-    threshold: 10,
-    hasExpiry: true,
+    minStockLevel: 10,
+    isPerishable: true,
+    defaultExpiryDays: 180,
+    barcode: "MEDSUPPLY006",
     status: "active",
   },
+  {
+    id: "prod-7",
+    name: "Perishable Food",
+    description: "Organic perishable food items",
+    category: "Food",
+    stock: 32,
+    unit: "box",
+    minStockLevel: 15,
+    isPerishable: true,
+    defaultExpiryDays: 30,
+    barcode: "PERISHFOOD007",
+    status: "active",
+  }
 ];
 
 const categories = [
   "All Categories",
   "Electronics",
   "Office Supplies",
-  "Furniture",
   "Pharmaceutical",
   "Food",
   "Other"
@@ -157,8 +181,8 @@ const Products = () => {
 
   const filteredProducts = productsData.filter((product) => {
     const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    // product.sku.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory = categoryFilter === "All Categories" || product.category === categoryFilter;
 
@@ -380,13 +404,15 @@ const Products = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Product Name</TableHead>
-                <TableHead>SKU</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="text-right">Stock Level</TableHead>
                 <TableHead>Unit</TableHead>
-                <TableHead>Threshold</TableHead>
-                <TableHead>Expiry Tracking</TableHead>
+                <TableHead>Barcode</TableHead>
+                <TableHead className="text-right">Min Stock Level</TableHead>
+                <TableHead>Perishable</TableHead>
+                <TableHead>Expiry Days</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -395,54 +421,34 @@ const Products = () => {
                 filteredProducts.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.sku}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{product.description}</TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell className="text-right">
-                      <span className={product.stockLevel <= product.threshold ? "text-red-500 font-medium" : ""}>
-                        {product.stockLevel}
+                      <span className={product.stock <= product.minStockLevel ? "text-red-500 font-medium" : ""}>
+                        {product.stock}
                       </span>
-                      {product.stockLevel <= product.threshold && (
+                      {product.stock <= product.minStockLevel && (
                         <Badge variant="destructive" className="ml-2">Low</Badge>
                       )}
                     </TableCell>
-                    <TableCell>{product.unit}</TableCell>
-                    <TableCell>{product.threshold}</TableCell>
                     <TableCell>
-                      {product.hasExpiry ? (
+                      <Badge variant="outline">{product.unit}</Badge>
+                    </TableCell>
+                    <TableCell className="font-mono">{product.barcode}</TableCell>
+                    <TableCell className="text-right">{product.minStockLevel}</TableCell>
+                    <TableCell>
+                      {product.isPerishable ? (
                         <Badge variant="outline" className="bg-blue-50">Yes</Badge>
                       ) : (
                         <Badge variant="outline" className="bg-gray-50">No</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <BarcodeGenerator productId={product.id} productSku={product.sku} />
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Trash className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
+                    <TableCell>{product.defaultExpiryDays || '-'}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-6 text-muted-foreground">
                     No products found with the current filters.
                   </TableCell>
                 </TableRow>
@@ -451,20 +457,6 @@ const Products = () => {
           </Table>
         </div>
       </Card>
-
-      <div className="mt-6 grid gap-4">
-        <h3 className="text-lg font-semibold">Overstock Alerts</h3>
-        <div className="grid gap-2">
-          {productsData.map((product) => (
-            <StockThreshold
-              key={product.id}
-              currentStock={product.stockLevel}
-              maxThreshold={product.threshold * 2}
-              productName={product.name}
-            />
-          ))}
-        </div>
-      </div>
     </>
   );
 };

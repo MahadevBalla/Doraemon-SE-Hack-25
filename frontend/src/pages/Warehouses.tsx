@@ -14,38 +14,62 @@ import { useToast } from "@/hooks/use-toast";
 import { Warehouse } from "@/types";
 import { cn } from "@/lib/utils";
 
-// Sample warehouse data
+// Sample warehouse data matching the schema
 const warehousesData = [
   {
-    id: "wh-1",
+    _id: "wh-1",
     name: "Warehouse A",
-    location: "Boston, MA",
+    location: {
+      address: "123 Industrial Park",
+      city: "Boston",
+      postalCode: "02108"
+    },
+    quantity: 152,
     capacity: 1000,
-    usedCapacity: 750,
-    productCount: 24,
-    itemCount: 152,
-    status: "active",
+    currentOccupancy: 750,
+    manager: {
+      _id: "user-1",
+      name: "John Smith"
+    },
+    createdAt: new Date("2023-01-15"),
+    updatedAt: new Date("2023-06-20")
   },
   {
-    id: "wh-2",
+    _id: "wh-2",
     name: "Warehouse B",
-    location: "Chicago, IL",
+    location: {
+      address: "456 Commerce St",
+      city: "Chicago",
+      postalCode: "60601"
+    },
+    quantity: 98,
     capacity: 800,
-    usedCapacity: 620,
-    productCount: 18,
-    itemCount: 98,
-    status: "active",
+    currentOccupancy: 620,
+    manager: {
+      _id: "user-2",
+      name: "Sarah Johnson"
+    },
+    createdAt: new Date("2023-02-10"),
+    updatedAt: new Date("2023-07-15")
   },
   {
-    id: "wh-3",
+    _id: "wh-3",
     name: "Warehouse C",
-    location: "Austin, TX",
+    location: {
+      address: "789 Logistics Blvd",
+      city: "Austin",
+      postalCode: "78701"
+    },
+    quantity: 215,
     capacity: 1200,
-    usedCapacity: 1140,
-    productCount: 32,
-    itemCount: 215,
-    status: "nearCapacity",
-  },
+    currentOccupancy: 1140,
+    manager: {
+      _id: "user-3",
+      name: "Michael Brown"
+    },
+    createdAt: new Date("2023-03-05"),
+    updatedAt: new Date("2023-08-10")
+  }
 ];
 
 const Warehouses = () => {
@@ -86,8 +110,8 @@ const Warehouses = () => {
   // Filter warehouses based on search query
   const filteredWarehouses = warehousesData.filter((warehouse) => {
     return (
-      warehouse.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      warehouse.location.toLowerCase().includes(searchQuery.toLowerCase())
+      warehouse.name.toLowerCase().includes(searchQuery.toLowerCase())
+      //warehouse.location.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
 
@@ -163,7 +187,7 @@ const Warehouses = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {warehousesData.map((warehouse) => {
-          const usagePercentage = Math.round((warehouse.usedCapacity / warehouse.capacity) * 100);
+          const usagePercentage = Math.round((warehouse.currentOccupancy / warehouse.capacity) * 100);
 
           let statusColor = "text-green-500";
           if (usagePercentage > 95) {
@@ -173,7 +197,7 @@ const Warehouses = () => {
           }
 
           return (
-            <Card key={warehouse.id} className="relative overflow-hidden">
+            <Card key={warehouse._id} className="relative overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex justify-between items-center">
                   {warehouse.name}
@@ -194,8 +218,24 @@ const Warehouses = () => {
                   </Badge>
                 </CardTitle>
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {warehouse.location}
+                  <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                  {warehouse.location ? (
+                    <>
+                      {warehouse.location.address && (
+                        <span className="mr-1">{warehouse.location.address},</span>
+                      )}
+                      {warehouse.location.city || warehouse.location.postalCode ? (
+                        <span>
+                          {warehouse.location.city}
+                          {warehouse.location.postalCode && ` ${warehouse.location.postalCode}`}
+                        </span>
+                      ) : (
+                        !warehouse.location.address && <span>Location not specified</span>
+                      )}
+                    </>
+                  ) : (
+                    <span>Location not specified</span>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -216,7 +256,7 @@ const Warehouses = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-md bg-muted p-3">
                       <div className="text-sm text-muted-foreground">Products</div>
                       <div className="text-xl font-medium mt-1">{warehouse.productCount}</div>
@@ -225,11 +265,11 @@ const Warehouses = () => {
                       <div className="text-sm text-muted-foreground">Items</div>
                       <div className="text-xl font-medium mt-1">{warehouse.itemCount}</div>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Capacity</span>
-                    <span className="font-medium">{warehouse.usedCapacity} / {warehouse.capacity} units</span>
+                    <span className="font-medium">{warehouse.currentOccupancy} / {warehouse.capacity} units</span>
                   </div>
 
                   <div className="flex justify-end">
@@ -260,71 +300,46 @@ const Warehouses = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Capacity</TableHead>
-                <TableHead>Usage</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Occupancy</TableHead>
+                <TableHead>Quantity</TableHead>
+                <TableHead>Manager</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredWarehouses.length > 0 ? (
                 filteredWarehouses.map((warehouse) => {
-                  const usagePercentage = Math.round((warehouse.usedCapacity / warehouse.capacity) * 100);
+                  const occupancyPercentage = warehouse.capacity > 0
+                    ? Math.round((warehouse.currentOccupancy / warehouse.capacity) * 100)
+                    : 0;
 
                   return (
-                    <TableRow key={warehouse.id}>
+                    <TableRow key={warehouse._id}>
                       <TableCell className="font-medium">{warehouse.name}</TableCell>
-                      <TableCell>{warehouse.location}</TableCell>
+                      <TableCell>
+                        {warehouse.location?.address}, {warehouse.location?.city}, {warehouse.location?.postalCode}
+                      </TableCell>
                       <TableCell>{warehouse.capacity}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Progress
-                            value={usagePercentage}
+                            value={occupancyPercentage}
                             className={cn(
                               "h-2 w-20",
-                              usagePercentage > 95
+                              occupancyPercentage > 95
                                 ? "[--progress-foreground:theme(colors.red.500)]"
-                                : usagePercentage > 80
+                                : occupancyPercentage > 80
                                   ? "[--progress-foreground:theme(colors.amber.500)]"
                                   : ""
                             )}
                           />
-                          <span className="text-xs">{usagePercentage}%</span>
+                          <span className="text-xs">{occupancyPercentage}%</span>
                         </div>
                       </TableCell>
-                      <TableCell>{warehouse.productCount}</TableCell>
-                      <TableCell>{warehouse.itemCount}</TableCell>
+                      <TableCell>{warehouse.quantity}</TableCell>
                       <TableCell>
-                        {usagePercentage > 95 ? (
-                          <Badge variant="destructive">Critical</Badge>
-                        ) : usagePercentage > 80 ? (
-                          <Badge>Near Capacity</Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-green-50">Normal</Badge>
-                        )}
+                        {warehouse.manager?.name || 'Unassigned'}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Trash className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+
                     </TableRow>
                   )
                 })

@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Plus, Search, Edit, Trash, MoreHorizontal, Shield, User, UserCog, UserCheck } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { useState, useEffect } from "react";
+import { Plus, Search, Edit, Trash, MoreHorizontal, Shield, UserCog, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import type { User } from "@/types/index";
+import axios from "axios";
 
 // Interface for User based on Mongoose schema
 interface Warehouse {
@@ -21,85 +22,8 @@ interface Warehouse {
   name?: string; // Adding name for display purposes
 }
 
-interface User {
-  _id: string;
-  username: string;
-  email: string;
-  role: 'admin' | 'manager' | 'staff';
-  warehouses: Warehouse[];
-  lastLogin: Date | null;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date | null;
-}
-
-// Sample users data following the schema
-const usersData: User[] = [
-  {
-    _id: "user-1",
-    username: "john_doe",
-    email: "john.doe@example.com",
-    role: "admin",
-    warehouses: [{ _id: "wh-1", name: "Main Warehouse" }, { _id: "wh-2", name: "North Facility" }],
-    lastLogin: new Date("2025-04-19T09:45:00"),
-    isActive: true,
-    createdAt: new Date("2024-10-15T08:30:00"),
-    updatedAt: new Date("2025-04-19T09:45:00")
-  },
-  {
-    _id: "user-2",
-    username: "sarah_chen",
-    email: "sarah.chen@example.com",
-    role: "manager",
-    warehouses: [{ _id: "wh-2", name: "North Facility" }],
-    lastLogin: new Date("2025-04-18T15:20:00"),
-    isActive: true,
-    createdAt: new Date("2024-11-05T10:15:00"),
-    updatedAt: new Date("2025-04-18T15:20:00")
-  },
-  {
-    _id: "user-3",
-    username: "mike_johnson",
-    email: "mike.johnson@example.com",
-    role: "staff",
-    warehouses: [{ _id: "wh-1", name: "Main Warehouse" }],
-    lastLogin: new Date("2025-04-19T10:15:00"),
-    isActive: true,
-    createdAt: new Date("2025-01-12T14:20:00"),
-    updatedAt: new Date("2025-04-19T10:15:00")
-  },
-  {
-    _id: "user-4",
-    username: "lisa_wong",
-    email: "lisa.wong@example.com",
-    role: "manager",
-    warehouses: [{ _id: "wh-3", name: "South Distribution" }],
-    lastLogin: new Date("2025-04-17T13:30:00"),
-    isActive: true,
-    createdAt: new Date("2024-12-20T09:00:00"),
-    updatedAt: new Date("2025-04-17T13:30:00")
-  },
-  {
-    _id: "user-5",
-    username: "alex_smith",
-    email: "alex.smith@example.com",
-    role: "staff",
-    warehouses: [{ _id: "wh-2", name: "North Facility" }],
-    lastLogin: new Date("2025-04-10T11:25:00"),
-    isActive: false,
-    createdAt: new Date("2025-01-05T15:45:00"),
-    updatedAt: new Date("2025-04-10T11:25:00")
-  },
-];
-
-// Sample warehouses for selection
-const warehousesData = [
-  { _id: "wh-1", name: "Main Warehouse" },
-  { _id: "wh-2", name: "North Facility" },
-  { _id: "wh-3", name: "South Distribution" },
-  { _id: "wh-4", name: "East Storage" },
-  { _id: "wh-5", name: "West Fulfillment Center" },
-];
+// API base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000/api/v1";
 
 // Role descriptions
 const roleDescriptions = {
@@ -113,6 +37,10 @@ const Users = () => {
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const { toast } = useToast();
 
   // Form state for new user
@@ -125,36 +53,203 @@ const Users = () => {
     warehouses: [] as string[],
   });
 
+  // Fetch users and warehouses on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        // In a real implementation, you would fetch these from your API
+        // For now, we'll use the sample data
+        setUsers(usersData);
+        setWarehouses(warehousesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load data. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]);
+
+  const validateForm = () => {
+    const errors: { [key: string]: string } = {};
+
+    // Username validation
+    if (!newUser.username.trim()) {
+      errors.username = "Username is required";
+    } else if (newUser.username.length < 3) {
+      errors.username = "Username must be at least 3 characters";
+    }
+
+    // Email validation
+    if (!newUser.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/^\S+@\S+\.\S+$/.test(newUser.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    // Password validation
+    if (!newUser.password.trim()) {
+      errors.password = "Password is required";
+    } else if (newUser.password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+
+    // Warehouse validation based on role
+    if (newUser.role !== "admin" && newUser.warehouses.length === 0) {
+      errors.warehouses = "Manager and staff users must have at least one warehouse assigned";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewUser({ ...newUser, [name]: value });
+    // Clear error for this field when user types
+    if (formErrors[name]) {
+      setFormErrors({ ...formErrors, [name]: "" });
+    }
   };
 
   const handleSelectChange = (name: string, value: string | string[]) => {
     setNewUser({ ...newUser, [name]: value });
+    // Clear error for this field
+    if (formErrors[name]) {
+      setFormErrors({ ...formErrors, [name]: "" });
+    }
+
+    // If role changes to admin, we can clear warehouse selection
+    if (name === "role" && value === "admin") {
+      setNewUser(prev => ({ ...prev, warehouses: [] }));
+    }
   };
 
   const handleSwitchChange = (checked: boolean) => {
     setNewUser({ ...newUser, isActive: checked });
   };
 
-  const handleAddUser = () => {
-    // In a real app, this would send data to an API
-    toast({
-      title: "User Added",
-      description: `${newUser.username} has been added with ${newUser.role} role.`,
-    });
-    setIsAddUserOpen(false);
-    // Reset form
-    setNewUser({
-      username: "",
-      email: "",
-      password: "",
-      role: "staff",
-      isActive: true,
-      warehouses: [],
-    });
+  const handleAddUser = async () => {
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // Prepare data for API
+      const userData = {
+        username: newUser.username,
+        email: newUser.email,
+        passwordHash: newUser.password, // backend will hash this
+        role: newUser.role,
+        warehouses: newUser.role === "admin" ? [] : newUser.warehouses,
+        isActive: newUser.isActive
+      };
+
+      // Call register API endpoint
+      const response = await axios.post(`${API_BASE_URL}/user/register`, userData);
+
+      if (response.data) {
+        toast({
+          title: "User Added",
+          description: `${newUser.username} has been added with ${newUser.role} role.`,
+        });
+
+        // Add new user to the list
+        const createdUser = response.data.user;
+        setUsers(prevUsers => [...prevUsers, createdUser]);
+
+        // Reset form and close dialog
+        setIsAddUserOpen(false);
+        setNewUser({
+          username: "",
+          email: "",
+          password: "",
+          role: "staff",
+          isActive: true,
+          warehouses: [],
+        });
+      }
+    } catch (error: any) {
+      console.error("Error adding user:", error);
+      const errorMessage = error.response?.data?.message || "Failed to add user. Please try again.";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Sample users data following the schema
+  const usersData: User[] = [
+    {
+      _id: "user-1",
+      username: "john_doe",
+      email: "john.doe@example.com",
+      role: "admin",
+      warehouses: [{ _id: "wh-1", name: "Main Warehouse" }, { _id: "wh-2", name: "North Facility" }],
+      lastLogin: new Date("2025-04-19T09:45:00"),
+      isActive: true,
+      createdAt: new Date("2024-10-15T08:30:00"),
+      updatedAt: new Date("2025-04-19T09:45:00")
+    },
+    {
+      _id: "user-2",
+      username: "sarah_chen",
+      email: "sarah.chen@example.com",
+      role: "manager",
+      warehouses: [{ _id: "wh-2", name: "North Facility" }],
+      lastLogin: new Date("2025-04-18T15:20:00"),
+      isActive: true,
+      createdAt: new Date("2024-11-05T10:15:00"),
+      updatedAt: new Date("2025-04-18T15:20:00")
+    },
+    {
+      _id: "user-3",
+      username: "mike_johnson",
+      email: "mike.johnson@example.com",
+      role: "staff",
+      warehouses: [{ _id: "wh-1", name: "Main Warehouse" }],
+      lastLogin: new Date("2025-04-19T10:15:00"),
+      isActive: true,
+      createdAt: new Date("2025-01-12T14:20:00"),
+      updatedAt: new Date("2025-04-19T10:15:00")
+    },
+    {
+      _id: "user-4",
+      username: "lisa_wong",
+      email: "lisa.wong@example.com",
+      role: "manager",
+      warehouses: [{ _id: "wh-3", name: "South Distribution" }],
+      lastLogin: new Date("2025-04-17T13:30:00"),
+      isActive: true,
+      createdAt: new Date("2024-12-20T09:00:00"),
+      updatedAt: new Date("2025-04-17T13:30:00")
+    },
+    {
+      _id: "user-5",
+      username: "alex_smith",
+      email: "alex.smith@example.com",
+      role: "staff",
+      warehouses: [{ _id: "wh-2", name: "North Facility" }],
+      lastLogin: new Date("2025-04-10T11:25:00"),
+      isActive: false,
+      createdAt: new Date("2025-01-05T15:45:00"),
+      updatedAt: new Date("2025-04-10T11:25:00")
+    },
+  ];
 
   // Filter users based on search query, role, and status
   const filteredUsers = usersData.filter((user) => {
@@ -233,7 +328,11 @@ const Users = () => {
                     value={newUser.username}
                     onChange={handleInputChange}
                     placeholder="E.g., john_doe"
+                    className={formErrors.username ? "border-red-500" : ""}
                   />
+                  {formErrors.username && (
+                    <p className="text-xs text-red-500">{formErrors.username}</p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email Address</Label>
@@ -244,7 +343,11 @@ const Users = () => {
                     value={newUser.email}
                     onChange={handleInputChange}
                     placeholder="E.g., john.doe@example.com"
+                    className={formErrors.email ? "border-red-500" : ""}
                   />
+                  {formErrors.email && (
+                    <p className="text-xs text-red-500">{formErrors.email}</p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
@@ -255,7 +358,11 @@ const Users = () => {
                     value={newUser.password}
                     onChange={handleInputChange}
                     placeholder="Create a strong password"
+                    className={formErrors.password ? "border-red-500" : ""}
                   />
+                  {formErrors.password && (
+                    <p className="text-xs text-red-500">{formErrors.password}</p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="role">Role</Label>
@@ -277,12 +384,17 @@ const Users = () => {
                   </p>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="warehouses">Assigned Warehouses</Label>
+                  <Label htmlFor="warehouses">
+                    Assigned Warehouses
+                    {newUser.role !== "admin" && <span className="text-red-500">*</span>}
+                    {newUser.role === "admin" && <span className="text-xs text-muted-foreground ml-2">(Optional for Admins)</span>}
+                  </Label>
                   <Select
                     value={newUser.warehouses.length > 0 ? "selected" : ""}
                     onValueChange={() => { }}
+                    disabled={isLoading}
                   >
-                    <SelectTrigger id="warehouses">
+                    <SelectTrigger id="warehouses" className={formErrors.warehouses ? "border-red-500" : ""}>
                       <SelectValue placeholder="Select warehouses" />
                     </SelectTrigger>
                     <SelectContent>
@@ -305,6 +417,9 @@ const Users = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {formErrors.warehouses && (
+                    <p className="text-xs text-red-500">{formErrors.warehouses}</p>
+                  )}
                   <div className="flex flex-wrap gap-1 mt-1">
                     {newUser.warehouses.map(warehouseId => {
                       const warehouse = warehousesData.find(w => w._id === warehouseId);
@@ -322,15 +437,16 @@ const Users = () => {
                     id="isActive"
                     checked={newUser.isActive}
                     onCheckedChange={handleSwitchChange}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
+                <Button variant="outline" onClick={() => setIsAddUserOpen(false)} disabled={isLoading}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddUser}>
-                  Add User
+                <Button onClick={handleAddUser} disabled={isLoading}>
+                  {isLoading ? "Adding..." : "Add User"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -444,7 +560,7 @@ const Users = () => {
                         {user.warehouses.length > 0 ? (
                           user.warehouses.map(warehouse => (
                             <Badge key={warehouse._id} variant="outline" className="text-xs">
-                              {warehouse.name}
+                              {typeof warehouse === 'string' ? warehouse : warehouse.name}
                             </Badge>
                           ))
                         ) : (
