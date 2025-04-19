@@ -6,7 +6,7 @@ import {
   Layers,
   Package,
   TrendingUp,
-  Truck,
+  Truck,  
   AlertTriangle,
   Calendar
 } from "lucide-react";
@@ -21,14 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import {
-  activityFeed,
-  inventoryAlerts,
-  stockLevelData,
-  stockStats,
-  warehouseData,
-  topProducts
-} from "@/data/mockData";
+
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 // Data for the category distribution chart
@@ -41,6 +34,29 @@ const categoryData = [
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
+// Mock data for top products
+const topProducts = [
+  { id: 1, name: "Product A", sku: "SKU123", sales: 120, growth: 10 },
+  { id: 2, name: "Product B", sku: "SKU456", sales: 95, growth: 5 },
+  { id: 3, name: "Product C", sku: "SKU789", sales: 80, growth: -3 },
+  { id: 4, name: "Product D", sku: "SKU012", sales: 60, growth: 8 },
+  { id: 5, name: "Product E", sku: "SKU345", sales: 50, growth: -2 },
+];
+
+// Mock data for warehouse summary
+const warehouseData = [
+  { id: "wh-1", name: "Warehouse A", stock: 500, location: "New York", capacity: 1000, usedCapacity: 500, itemCount: 200 },
+  { id: "wh-2", name: "Warehouse B", stock: 300, location: "Los Angeles", capacity: 800, usedCapacity: 300, itemCount: 150 },
+  { id: "wh-3", name: "Warehouse C", stock: 400, location: "Chicago", capacity: 900, usedCapacity: 400, itemCount: 180 },
+];
+
+// Mock data for inventory alerts
+const inventoryAlerts = [
+  { id: "1", message: "Low stock for Product A", severity: "high", type: "stock", item: "Product A", location: "Warehouse A" },
+  { id: "2", message: "Product B nearing expiration", severity: "medium", type: "expiry", item: "Product B", location: "Warehouse B" },
+  { id: "3", message: "Stock discrepancy in Warehouse C", severity: "low", type: "discrepancy", item: "Warehouse C", location: "Warehouse C" },
+];
+
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState("30days");
   const [selectedWarehouse, setSelectedWarehouse] = useState("all");
@@ -51,6 +67,29 @@ const Dashboard = () => {
     <TrendingUp className="h-5 w-5" />,
     <ArrowDownRight className="h-5 w-5" />,
     <Truck className="h-5 w-5" />,
+  ];
+
+  const stockStats = [
+    { title: "Total Stock", value: "1,200", trend: { value: 10, label: "Increase", positive: true } },
+    { title: "Sales", value: "800", trend: { value: 15, label: "Increase", positive: true } },
+    { title: "Returns", value: "50", trend: { value: 5, label: "Decrease", positive: false } },
+    { title: "Deliveries", value: "1,000", trend: { value: 20, label: "Increase", positive: true } },
+  ];
+
+  // Mock data for stock level chart
+  const stockLevelData = [
+    { name: "Jan", stock: 400, date: "2023-01-01", warehouse1: 200 },
+    { name: "Feb", stock: 300, date: "2023-02-01", warehouse1: 150 },
+    { name: "Mar", stock: 500, date: "2023-03-01", warehouse1: 250 },
+    { name: "Apr", stock: 700, date: "2023-04-01", warehouse1: 350 },
+    { name: "May", stock: 600, date: "2023-05-01", warehouse1: 300 },
+  ];
+
+  const activityFeed: Activity[] = [
+    { id: "1", description: "Stock updated for Product A", timestamp: "2023-05-01 10:00 AM", type: "update", user: "Admin", quantity: 50, item: "Product A", location: "Warehouse A" },
+    { id: "2", description: "New order placed for Product B", timestamp: "2023-05-02 11:30 AM", type: "order", user: "Customer", quantity: 20, item: "Product B", location: "Online" },
+    { id: "3", description: "Delivery completed for Order #1234", timestamp: "2023-05-03 02:15 PM", type: "delivery", user: "Courier", quantity: 30, item: "Order #1234", location: "Warehouse B" },
+    { id: "4", description: "Return processed for Product C", timestamp: "2023-05-04 04:45 PM", type: "return", user: "Customer", quantity: 10, item: "Product C", location: "Warehouse C" },
   ];
 
   const handleExportReport = () => {

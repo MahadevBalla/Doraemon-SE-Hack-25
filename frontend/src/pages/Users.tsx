@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash, MoreHorizontal, Shield, UserCog, UserCheck } from "lucide-react";
+import { Plus, Search, Edit, Trash, MoreHorizontal, Shield, UserCog, UserCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,19 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
-import type { User } from "@/types/index";
 import axios from "axios";
 
-// Interface for User based on Mongoose schema
-interface Warehouse {
-  _id: string;
-  name?: string; // Adding name for display purposes
-}
+// Import the interfaces
+import { User, Warehouse } from "@/types/index";
 
 // API base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
 // Role descriptions
 const roleDescriptions = {
@@ -37,7 +33,7 @@ const Users = () => {
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [users, setUsers] = useState<UserType[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
@@ -50,32 +46,53 @@ const Users = () => {
     password: "", // For creating new users
     role: "staff" as 'admin' | 'manager' | 'staff',
     isActive: true,
-    warehouses: [] as string[],
+    assignedWarehouse: "", // Single warehouse assignment per user
   });
 
   // Fetch users and warehouses on component mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        // In a real implementation, you would fetch these from your API
-        // For now, we'll use the sample data
-        setUsers(usersData);
-        setWarehouses(warehousesData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load data. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    fetchUsers();
+    fetchWarehouses();
+  }, []);
 
-    fetchData();
-  }, [toast]);
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/user`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      });
+      setUsers(response.data.users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchWarehouses = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/warehouses`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      });
+      setWarehouses(response.data.warehouses);
+    } catch (error) {
+      console.error("Error fetching warehouses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load warehouses. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
@@ -102,8 +119,8 @@ const Users = () => {
     }
 
     // Warehouse validation based on role
-    if (newUser.role !== "admin" && newUser.warehouses.length === 0) {
-      errors.warehouses = "Manager and staff users must have at least one warehouse assigned";
+    if (newUser.role !== "admin" && !newUser.assignedWarehouse) {
+      errors.assignedWarehouse = "Manager and staff users must have a warehouse assigned";
     }
 
     setFormErrors(errors);
@@ -119,7 +136,7 @@ const Users = () => {
     }
   };
 
-  const handleSelectChange = (name: string, value: string | string[]) => {
+  const handleSelectChange = (name: string, value: string) => {
     setNewUser({ ...newUser, [name]: value });
     // Clear error for this field
     if (formErrors[name]) {
@@ -128,7 +145,7 @@ const Users = () => {
 
     // If role changes to admin, we can clear warehouse selection
     if (name === "role" && value === "admin") {
-      setNewUser(prev => ({ ...prev, warehouses: [] }));
+      setNewUser(prev => ({ ...prev, assignedWarehouse: "" }));
     }
   };
 
@@ -149,14 +166,18 @@ const Users = () => {
       const userData = {
         username: newUser.username,
         email: newUser.email,
-        passwordHash: newUser.password, // backend will hash this
+        password: newUser.password,
         role: newUser.role,
-        warehouses: newUser.role === "admin" ? [] : newUser.warehouses,
+        assignedWarehouse: newUser.role === "admin" ? undefined : newUser.assignedWarehouse,
         isActive: newUser.isActive
       };
 
       // Call register API endpoint
-      const response = await axios.post(`${API_BASE_URL}/user/register`, userData);
+      const response = await axios.post(`${API_BASE_URL}/user/register`, userData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      });
 
       if (response.data) {
         toast({
@@ -164,9 +185,8 @@ const Users = () => {
           description: `${newUser.username} has been added with ${newUser.role} role.`,
         });
 
-        // Add new user to the list
-        const createdUser = response.data.user;
-        setUsers(prevUsers => [...prevUsers, createdUser]);
+        // Refresh the user list
+        fetchUsers();
 
         // Reset form and close dialog
         setIsAddUserOpen(false);
@@ -176,7 +196,7 @@ const Users = () => {
           password: "",
           role: "staff",
           isActive: true,
-          warehouses: [],
+          assignedWarehouse: "",
         });
       }
     } catch (error: any) {
@@ -192,67 +212,8 @@ const Users = () => {
     }
   };
 
-  // Sample users data following the schema
-  const usersData: User[] = [
-    {
-      _id: "user-1",
-      username: "john_doe",
-      email: "john.doe@example.com",
-      role: "admin",
-      warehouses: [{ _id: "wh-1", name: "Main Warehouse" }, { _id: "wh-2", name: "North Facility" }],
-      lastLogin: new Date("2025-04-19T09:45:00"),
-      isActive: true,
-      createdAt: new Date("2024-10-15T08:30:00"),
-      updatedAt: new Date("2025-04-19T09:45:00")
-    },
-    {
-      _id: "user-2",
-      username: "sarah_chen",
-      email: "sarah.chen@example.com",
-      role: "manager",
-      warehouses: [{ _id: "wh-2", name: "North Facility" }],
-      lastLogin: new Date("2025-04-18T15:20:00"),
-      isActive: true,
-      createdAt: new Date("2024-11-05T10:15:00"),
-      updatedAt: new Date("2025-04-18T15:20:00")
-    },
-    {
-      _id: "user-3",
-      username: "mike_johnson",
-      email: "mike.johnson@example.com",
-      role: "staff",
-      warehouses: [{ _id: "wh-1", name: "Main Warehouse" }],
-      lastLogin: new Date("2025-04-19T10:15:00"),
-      isActive: true,
-      createdAt: new Date("2025-01-12T14:20:00"),
-      updatedAt: new Date("2025-04-19T10:15:00")
-    },
-    {
-      _id: "user-4",
-      username: "lisa_wong",
-      email: "lisa.wong@example.com",
-      role: "manager",
-      warehouses: [{ _id: "wh-3", name: "South Distribution" }],
-      lastLogin: new Date("2025-04-17T13:30:00"),
-      isActive: true,
-      createdAt: new Date("2024-12-20T09:00:00"),
-      updatedAt: new Date("2025-04-17T13:30:00")
-    },
-    {
-      _id: "user-5",
-      username: "alex_smith",
-      email: "alex.smith@example.com",
-      role: "staff",
-      warehouses: [{ _id: "wh-2", name: "North Facility" }],
-      lastLogin: new Date("2025-04-10T11:25:00"),
-      isActive: false,
-      createdAt: new Date("2025-01-05T15:45:00"),
-      updatedAt: new Date("2025-04-10T11:25:00")
-    },
-  ];
-
   // Filter users based on search query, role, and status
-  const filteredUsers = usersData.filter((user) => {
+  const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -268,24 +229,24 @@ const Users = () => {
 
   // Count users by role
   const userCounts = {
-    admin: usersData.filter(user => user.role === "admin").length,
-    manager: usersData.filter(user => user.role === "manager").length,
-    staff: usersData.filter(user => user.role === "staff").length,
+    admin: users.filter(user => user.role === "admin").length,
+    manager: users.filter(user => user.role === "manager").length,
+    staff: users.filter(user => user.role === "staff").length,
   };
 
   // Get initials for avatar fallback
   const getInitials = (username: string) => {
     return username
-      .split('_')
+      .split(/[ _]/)
       .map((n) => n[0])
       .join('')
       .toUpperCase();
   };
 
   // Format date for display
-  const formatDate = (date: Date | null) => {
+  const formatDate = (date: Date | null | undefined) => {
     if (!date) return "Never";
-    return format(date, "yyyy-MM-dd hh:mm a");
+    return format(new Date(date), "yyyy-MM-dd hh:mm a");
   };
 
   // Role icon mapping
@@ -293,6 +254,30 @@ const Users = () => {
     admin: <Shield className="h-5 w-5 text-primary" />,
     manager: <UserCog className="h-5 w-5 text-blue-500" />,
     staff: <UserCheck className="h-5 w-5 text-green-500" />,
+  };
+
+  // Get warehouse name from ID
+  const getWarehouseName = (warehouseId: string) => {
+    const warehouse = warehouses.find(w => w._id === warehouseId);
+    return warehouse ? warehouse.name : "Unknown";
+  };
+
+  // Handle password reset
+  const handleResetPassword = async (userId: string) => {
+    // Implement password reset functionality
+    toast({
+      title: "Not Implemented",
+      description: "Password reset functionality will be implemented later.",
+    });
+  };
+
+  // Handle user deletion
+  const handleDeleteUser = async (userId: string) => {
+    // Implement user deletion functionality
+    toast({
+      title: "Not Implemented",
+      description: "User deletion functionality will be implemented later.",
+    });
   };
 
   return (
@@ -384,52 +369,30 @@ const Users = () => {
                   </p>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="warehouses">
-                    Assigned Warehouses
+                  <Label htmlFor="assignedWarehouse">
+                    Assigned Warehouse
                     {newUser.role !== "admin" && <span className="text-red-500">*</span>}
                     {newUser.role === "admin" && <span className="text-xs text-muted-foreground ml-2">(Optional for Admins)</span>}
                   </Label>
                   <Select
-                    value={newUser.warehouses.length > 0 ? "selected" : ""}
-                    onValueChange={() => { }}
-                    disabled={isLoading}
+                    value={newUser.assignedWarehouse}
+                    onValueChange={(value) => handleSelectChange("assignedWarehouse", value)}
+                    disabled={isLoading || newUser.role === "admin"}
                   >
-                    <SelectTrigger id="warehouses" className={formErrors.warehouses ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select warehouses" />
+                    <SelectTrigger id="assignedWarehouse" className={formErrors.assignedWarehouse ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select warehouse" />
                     </SelectTrigger>
                     <SelectContent>
-                      {warehousesData.map(warehouse => (
-                        <div key={warehouse._id} className="flex items-center px-2 py-1">
-                          <input
-                            type="checkbox"
-                            id={`warehouse-${warehouse._id}`}
-                            checked={newUser.warehouses.includes(warehouse._id)}
-                            onChange={(e) => {
-                              const warehouses = e.target.checked
-                                ? [...newUser.warehouses, warehouse._id]
-                                : newUser.warehouses.filter(id => id !== warehouse._id);
-                              handleSelectChange("warehouses", warehouses);
-                            }}
-                            className="mr-2"
-                          />
-                          <label htmlFor={`warehouse-${warehouse._id}`}>{warehouse.name}</label>
-                        </div>
+                      {warehouses.map(warehouse => (
+                        <SelectItem key={warehouse._id} value={warehouse._id}>
+                          {warehouse.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {formErrors.warehouses && (
-                    <p className="text-xs text-red-500">{formErrors.warehouses}</p>
+                  {formErrors.assignedWarehouse && (
+                    <p className="text-xs text-red-500">{formErrors.assignedWarehouse}</p>
                   )}
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {newUser.warehouses.map(warehouseId => {
-                      const warehouse = warehousesData.find(w => w._id === warehouseId);
-                      return warehouse ? (
-                        <Badge key={warehouse._id} variant="outline" className="text-xs">
-                          {warehouse.name}
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Label htmlFor="isActive" className="flex-1">Active Account</Label>
@@ -530,7 +493,7 @@ const Users = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Warehouses</TableHead>
+                <TableHead>Warehouse</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Login</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -556,17 +519,21 @@ const Users = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {user.warehouses.length > 0 ? (
-                          user.warehouses.map(warehouse => (
-                            <Badge key={warehouse._id} variant="outline" className="text-xs">
-                              {typeof warehouse === 'string' ? warehouse : warehouse.name}
+                      {typeof user.warehouses === 'string' ? (
+                        <Badge variant="outline" className="text-xs">
+                          {getWarehouseName(user.warehouses)}
+                        </Badge>
+                      ) : Array.isArray(user.warehouses) && user.warehouses.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {user.warehouses.map(warehouseId => (
+                            <Badge key={typeof warehouseId === 'string' ? warehouseId : warehouseId._id} variant="outline" className="text-xs">
+                              {typeof warehouseId === 'string' ? getWarehouseName(warehouseId) : warehouseId.name}
                             </Badge>
-                          ))
-                        ) : (
-                          <span className="text-muted-foreground text-sm">None assigned</span>
-                        )}
-                      </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">None assigned</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {user.isActive ? (
@@ -575,7 +542,7 @@ const Users = () => {
                         <Badge variant="outline" className="border-muted-foreground">Inactive</Badge>
                       )}
                     </TableCell>
-                    <TableCell>{formatDate(user.lastLogin)}</TableCell>
+                    {/* <TableCell>{formatDate(user.lastLogin)}</TableCell> */}
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -590,12 +557,15 @@ const Users = () => {
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <User className="h-4 w-4 mr-2" />
+                          <DropdownMenuItem onClick={() => handleResetPassword(user._id)}>
+                            <Lock className="h-4 w-4 mr-2" />
                             Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-500">
+                          <DropdownMenuItem 
+                            className="text-red-500"
+                            onClick={() => handleDeleteUser(user._id)}
+                          >
                             <Trash className="h-4 w-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
@@ -607,7 +577,7 @@ const Users = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
-                    No users found with the current filters.
+                    {isLoading ? "Loading users..." : "No users found with the current filters."}
                   </TableCell>
                 </TableRow>
               )}
