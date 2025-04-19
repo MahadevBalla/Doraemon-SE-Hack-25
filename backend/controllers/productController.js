@@ -1,7 +1,7 @@
 import Product from '../models/Products.js';
 import Inventory from '../models/Inventory.js';
 import mongoose from 'mongoose';
-// import bar from '/utils/barcodeGenAPI.js'
+import generate from '../utils/barcodeGenAPI.js'
 // import { handleMovement } from '../utils/handleMovement.js';
 
 // Get all products
@@ -28,29 +28,48 @@ export const getProducts = async (req, res) => {
 // Create new product
 export const createProduct = async (req, res) => {
     try {
-        // Destructure required fields and others
-        const { name, warehouse, stock, ...otherFields } = req.body;
-        const barCode = bar.generator();
-        // Create product with validated schema fields
+        const { name, warehouse, stock, category, description, unit, isPerishable, defaultExpiryDays } = req.body;
+
+        // 1. Check for existing product with same name
+        const existingProduct = await Product.findOne({ name });
+        
+        if (existingProduct) {
+            // Add provided stock or increment by 1 if no stock specified
+            const increment = stock ? Number(stock) : 1;
+            existingProduct.stock += increment;
+            await existingProduct.save();
+            return res.status(200).json(existingProduct);
+        }
+
+        // 2. Handle new product creation
         const product = new Product({
             name,
             warehouse,
-            stock: stock || 0,  // Default to 0 if not provided
-            
+            stock: stock ? Number(stock) : 0, // Use schema default if not provided
+            barcode: await generate(), // Generate random barcode
+            category,
+            description,
+            unit: unit || 'piece',
+            isPerishable: isPerishable || false,
+            defaultExpiryDays
         });
 
-        // Save to database
         const savedProduct = await product.save();
-        
         res.status(201).json(savedProduct);
+
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: 'Barcode collision detected',
+                solution: 'Retry the request to generate a new unique barcode'
+            });
+        }
         res.status(400).json({ 
             message: 'Product creation failed',
             error: error.message 
         });
     }
-};
-// Update product
+};// Update product
 export const updateProduct = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();

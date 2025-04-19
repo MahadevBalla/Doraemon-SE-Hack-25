@@ -1,4 +1,4 @@
-import Warehouse from "../models/warehouse.js"; // Or wherever your schema file is
+import Warehouse from "../models/Warehouse.js"; // Or wherever your schema file is
 import ApiError from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
