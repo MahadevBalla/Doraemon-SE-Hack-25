@@ -6,12 +6,12 @@ import {
   Layers,
   Package,
   TrendingUp,
-  Truck,  
+  Truck,
   AlertTriangle,
   Calendar
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { Activity, ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { StockLevelChart } from "@/components/dashboard/StockLevelChart";
 import { InventoryAlerts } from "@/components/dashboard/InventoryAlerts";
@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 // Data for the category distribution chart
@@ -52,9 +51,9 @@ const warehouseData = [
 
 // Mock data for inventory alerts
 const inventoryAlerts = [
-  { id: "1", message: "Low stock for Product A", severity: "high", type: "stock", item: "Product A", location: "Warehouse A" },
-  { id: "2", message: "Product B nearing expiration", severity: "medium", type: "expiry", item: "Product B", location: "Warehouse B" },
-  { id: "3", message: "Stock discrepancy in Warehouse C", severity: "low", type: "discrepancy", item: "Warehouse C", location: "Warehouse C" },
+  { id: "1", message: "Low stock for Product A", severity: "high", type: "low_stock" as const, item: "Product A", location: "Warehouse A" },
+  { id: "2", message: "Product B nearing expiration", severity: "medium", type: "expiry" as const, item: "Product B", location: "Warehouse B" },
+  { id: "3", message: "Stock discrepancy in Warehouse C", severity: "low", type: "low_stock" as const, item: "Warehouse C", location: "Warehouse C" },
 ];
 
 const Dashboard = () => {
@@ -86,10 +85,10 @@ const Dashboard = () => {
   ];
 
   const activityFeed: Activity[] = [
-    { id: "1", description: "Stock updated for Product A", timestamp: "2023-05-01 10:00 AM", type: "update", user: "Admin", quantity: 50, item: "Product A", location: "Warehouse A" },
-    { id: "2", description: "New order placed for Product B", timestamp: "2023-05-02 11:30 AM", type: "order", user: "Customer", quantity: 20, item: "Product B", location: "Online" },
-    { id: "3", description: "Delivery completed for Order #1234", timestamp: "2023-05-03 02:15 PM", type: "delivery", user: "Courier", quantity: 30, item: "Order #1234", location: "Warehouse B" },
-    { id: "4", description: "Return processed for Product C", timestamp: "2023-05-04 04:45 PM", type: "return", user: "Customer", quantity: 10, item: "Product C", location: "Warehouse C" },
+    { id: "1", description: "Stock updated for Product A", timestamp: "2023-05-01 10:00 AM", type: "Incoming", user: "Admin", quantity: 50, item: "Product A", location: "Warehouse A" },
+    { id: "2", description: "New order placed for Product B", timestamp: "2023-05-02 11:30 AM", type: "Outgoing", user: "Customer", quantity: 20, item: "Product B", location: "Online" },
+    { id: "3", description: "Delivery completed for Order #1234", timestamp: "2023-05-03 02:15 PM", type: "Outgoing", user: "Courier", quantity: 30, item: "Order #1234", location: "Warehouse B" },
+    { id: "4", description: "Return processed for Product C", timestamp: "2023-05-04 04:45 PM", type: "Incoming", user: "Customer", quantity: 10, item: "Product C", location: "Warehouse C" },
   ];
 
   const handleExportReport = () => {
@@ -162,9 +161,9 @@ const Dashboard = () => {
               data={stockLevelData}
               className="lg:col-span-2"
             />
-            <ActivityFeed
+            {/* <ActivityFeed
               activities={activityFeed.slice(0, 4)}
-            />
+            /> */}
           </div>
 
           {/* Inventory Summary Card */}
@@ -283,7 +282,7 @@ const Dashboard = () => {
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <ActivityFeed activities={activityFeed} />
+              {/* <ActivityFeed activities={activityFeed} /> */}
               <Button variant="outline" className="w-full mt-4">View All Activity</Button>
             </CardContent>
           </Card>
