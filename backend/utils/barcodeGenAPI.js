@@ -1,20 +1,34 @@
-import pkg from 'code-128-encoder';
-const { encode } = pkg;
+import bwipjs from "bwip-js";
+import { randomBytes } from "crypto";
 
-export const generate = (productName) => {
-    // Generate unique base string
-    const baseString = `${productName
-        .replace(/\s+/g, '')       // Remove spaces
-        .slice(0, 20)}-${Date.now().toString().slice(-6)}`;  // Add timestamp
-    
-    // Generate valid Code128 string
-    try {
-        return encode(baseString, 'C');  // 'C' mode for optimal numeric compression
-    } catch (error) {
-        // Fallback to simple hash if encoding fails
-        const fallback = `BC-${Math.random().toString(36).slice(2, 10)}`;
-        return encode(fallback, 'C');
-    }
+export const generate = async () => {
+  try {
+    // Generate cryptographically secure random string
+    const randomString = randomBytes(8).toString("hex").toUpperCase(); // 16 chars
+
+    // Generate barcode buffer
+    const pngBuffer = await bwipjs.toBuffer({
+      bcid: "code128",
+      text: randomString,
+      scale: 2,
+      height: 10,
+      includetext: false,
+    });
+
+    // Convert to URL-safe base64
+    return pngBuffer
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "")
+      .substring(0, 30);
+  } catch (error) {
+    // Fallback with timestamp entropy
+    return `BC-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 6)}`
+      .toUpperCase()
+      .slice(0, 30);
+  }
 };
-
 export default generate;

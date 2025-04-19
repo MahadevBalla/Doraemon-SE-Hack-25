@@ -3,7 +3,7 @@ export const validateProduct = (req, res, next) => {
     const { sku, name, minStockLevel } = req.body;
 
     // Required fields validation
-    if (!sku) return res.status(400).json({ message: 'SKU is required' });
+    // if (!sku) return res.status(400).json({ message: 'SKU is required' });
     if (!name) return res.status(400).json({ message: 'Name is required' });
 
     // Data type validation
