@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, FileUp, Filter, Download, Edit, Trash, MoreHorizontal } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -11,103 +11,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-//import { BarcodeGenerator } from "@/components/inventory/BarcodeGenerator";
-import { StockThreshold } from "@/components/inventory/StockThreshold";
+import axios from "axios";
+import { Spinner } from "@/components/ui/spinner";
 
-const productsData = [
-  {
-    id: "prod-1",
-    name: "Blue Widgets",
-    description: "High-quality blue widgets for industrial use",
-    category: "Electronics",
-    stock: 142,
-    unit: "piece",
-    minStockLevel: 25,
-    isPerishable: false,
-    defaultExpiryDays: null,
-    barcode: "BLUEWIDGET001",
-    status: "active",
-  },
-  {
-    id: "prod-2",
-    name: "Red Gadgets",
-    description: "Premium red gadgets with extended warranty",
-    category: "Electronics",
-    stock: 87,
-    unit: "piece",
-    minStockLevel: 20,
-    isPerishable: false,
-    defaultExpiryDays: null,
-    barcode: "REDGADGET002",
-    status: "active",
-  },
-  {
-    id: "prod-3",
-    name: "Green Widgets",
-    description: "Eco-friendly green widgets (pack of 10)",
-    category: "Office Supplies",
-    stock: 253,
-    unit: "box",
-    minStockLevel: 30,
-    isPerishable: false,
-    defaultExpiryDays: null,
-    barcode: "GRNWIDGET003",
-    status: "active",
-  },
-  {
-    id: "prod-4",
-    name: "Yellow Gadgets",
-    description: "Industrial-grade yellow gadgets",
-    category: "Electronics",
-    stock: 12,
-    unit: "piece",
-    minStockLevel: 20,
-    isPerishable: false,
-    defaultExpiryDays: null,
-    barcode: "YLWGADGET004",
-    status: "low_stock",
-  },
-  {
-    id: "prod-5",
-    name: "Purple Widgets",
-    description: "Luxury purple widgets with warranty",
-    category: "Office Supplies",
-    stock: 78,
-    unit: "box",
-    minStockLevel: 15,
-    isPerishable: false,
-    defaultExpiryDays: null,
-    barcode: "PRPLWIDGET005",
-    status: "active",
-  },
-  {
-    id: "prod-6",
-    name: "Medical Supplies",
-    description: "Sterile medical supplies (expiry tracked)",
-    category: "Pharmaceutical",
-    stock: 45,
-    unit: "box",
-    minStockLevel: 10,
-    isPerishable: true,
-    defaultExpiryDays: 180,
-    barcode: "MEDSUPPLY006",
-    status: "active",
-  },
-  {
-    id: "prod-7",
-    name: "Perishable Food",
-    description: "Organic perishable food items",
-    category: "Food",
-    stock: 32,
-    unit: "box",
-    minStockLevel: 15,
-    isPerishable: true,
-    defaultExpiryDays: 30,
-    barcode: "PERISHFOOD007",
-    status: "active",
-  }
-];
+// API Base URL
+const API_BASE_URL = "http://localhost:8000/api/v1";
 
 const categories = [
   "All Categories",
@@ -119,79 +29,258 @@ const categories = [
 ];
 
 const Products = () => {
+  // State management
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const { toast } = useToast();
 
-  const [newProduct, setNewProduct] = useState({
+  // Initial product state
+  const initialProductState = {
     name: "",
-    sku: "",
+    description: "",
     category: "",
+    stock: 0,
     unit: "piece",
-    threshold: 10,
-    hasExpiry: false,
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewProduct({ ...newProduct, [name]: value });
+    minStockLevel: 10,
+    isPerishable: false,
+    defaultExpiryDays: null,
+    warehouse: ""
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setNewProduct({ ...newProduct, [name]: value });
+  const [newProduct, setNewProduct] = useState({ ...initialProductState });
+  const [warehouses, setWarehouses] = useState([]);
+
+  // Fetch products function
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/products`, {
+        params: {
+          page: currentPage,
+          limit: 10
+        }
+      });
+      setProducts(response.data.products);
+      setTotalPages(response.data.totalPages);
+      setCurrentPage(Number(response.data.currentPage));
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to fetch products");
+      toast({
+        title: "Error",
+        description: "Failed to fetch products",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSwitchChange = (checked: boolean) => {
-    setNewProduct({ ...newProduct, hasExpiry: checked });
+  // Fetch warehouses function
+  const fetchWarehouses = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/warehouse`);
+      setWarehouses(response.data);
+    } catch (err) {
+      console.error("Failed to fetch warehouses:", err);
+    }
   };
 
-  const handleAddProduct = () => {
-    toast({
-      title: "Product Added",
-      description: `${newProduct.name} has been added to the catalog.`,
-    });
-    setIsAddDialogOpen(false);
-    setNewProduct({
-      name: "",
-      sku: "",
-      category: "",
-      unit: "piece",
-      threshold: 10,
-      hasExpiry: false,
-    });
+  // Initial data fetch
+  useEffect(() => {
+    fetchProducts();
+    fetchWarehouses();
+  }, [currentPage]);
+
+  // Handle input change for forms
+  const handleInputChange = (e) => {
+    const { name, value, type } = e.target;
+    const finalValue = type === 'number' ? Number(value) : value;
+
+    if (editingProduct) {
+      setEditingProduct({ ...editingProduct, [name]: finalValue });
+    } else {
+      setNewProduct({ ...newProduct, [name]: finalValue });
+    }
   };
 
-  const handleImportCSV = () => {
-    toast({
-      title: "CSV Import Started",
-      description: "Your products are being processed.",
-    });
-    setIsImportDialogOpen(false);
+  // Handle select change for forms
+  const handleSelectChange = (name, value) => {
+    if (editingProduct) {
+      setEditingProduct({ ...editingProduct, [name]: value });
+    } else {
+      setNewProduct({ ...newProduct, [name]: value });
+    }
   };
 
-  const handleExportCSV = () => {
-    toast({
-      title: "CSV Export Started",
-      description: "Your product catalog is being exported to CSV.",
-    });
+  // Handle switch change for forms
+  const handleSwitchChange = (name, checked) => {
+    if (editingProduct) {
+      setEditingProduct({ ...editingProduct, [name]: checked });
+    } else {
+      setNewProduct({ ...newProduct, [name]: checked });
+    }
   };
 
-  const filteredProducts = productsData.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    // product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+  // Create a new product
+  const handleAddProduct = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/products`, newProduct);
+      toast({
+        title: "Product Added",
+        description: `${newProduct.name} has been added to the catalog.`,
+      });
+      setIsAddDialogOpen(false);
+      setNewProduct({ ...initialProductState });
+      fetchProducts(); // Refetch products after adding
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to add product",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Update an existing product
+  const handleUpdateProduct = async () => {
+    try {
+      const encodedName = encodeURIComponent(editingProduct.name);
+      await axios.patch(`${API_BASE_URL}/products/${encodedName}`, editingProduct);
+      toast({
+        title: "Product Updated",
+        description: `${editingProduct.name} has been updated.`,
+      });
+      setIsEditDialogOpen(false);
+      setEditingProduct(null);
+      fetchProducts(); // Refetch products after updating
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to update product",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Delete a product
+  const handleDeleteProduct = async (productId, warehouseId) => {
+    if (confirm("Are you sure you want to delete this product?")) {
+      try {
+        await axios.delete(`${API_BASE_URL}/products/${productId}/${warehouseId}`);
+        toast({
+          title: "Product Deleted",
+          description: "The product has been removed from the catalog.",
+        });
+        fetchProducts(); // Refetch products after deleting
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err.response?.data?.message || "Failed to delete product",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  // Import CSV
+  const handleImportCSV = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const file = formData.get('csvFile');
+
+    if (!file) {
+      toast({
+        title: "Error",
+        description: "Please select a CSV file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      await axios.post(`${API_BASE_URL}/products/import`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      toast({
+        title: "CSV Import Successful",
+        description: "Your products have been imported.",
+      });
+      setIsImportDialogOpen(false);
+      fetchProducts(); // Refetch products after import
+    } catch (err) {
+      toast({
+        title: "Import Failed",
+        description: err.response?.data?.message || "Failed to import products",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Export CSV
+  const handleExportCSV = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/products/export`, {
+        responseType: 'blob'
+      });
+
+      // Create a download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `products-export-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast({
+        title: "CSV Export Complete",
+        description: "Your product catalog has been exported to CSV.",
+      });
+    } catch (err) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export products",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Filter products based on search and filters
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.name?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory = categoryFilter === "All Categories" || product.category === categoryFilter;
 
+    const hasLowStock = product.stock <= product.minStockLevel;
     const matchesStatus = statusFilter === "all" ||
-      (statusFilter === "low_stock" && product.status === "low_stock") ||
-      (statusFilter === "active" && product.status === "active");
+      (statusFilter === "low_stock" && hasLowStock) ||
+      (statusFilter === "active" && !hasLowStock);
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  // Open the edit dialog with product data
+  const openEditDialog = (product) => {
+    setEditingProduct({ ...product });
+    setIsEditDialogOpen(true);
+  };
 
   return (
     <>
@@ -214,36 +303,38 @@ const Products = () => {
               <DialogHeader>
                 <DialogTitle>Import Products from CSV</DialogTitle>
                 <DialogDescription>
-                  Upload a CSV file to bulk import products. The file should contain columns for SKU, Name, Category, Unit, and Threshold.
+                  Upload a CSV file to bulk import products. The file should contain columns for Name, Category, Unit, and Min Stock Level.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="csvFile">CSV File</Label>
-                  <Input id="csvFile" type="file" accept=".csv" />
+              <form onSubmit={handleImportCSV}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="csvFile">CSV File</Label>
+                    <Input id="csvFile" name="csvFile" type="file" accept=".csv" />
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Duplicate Handling</Label>
+                    <Select defaultValue="update" name="duplicateHandling">
+                      <SelectTrigger className="w-full mt-1">
+                        <SelectValue placeholder="Select duplicate handling" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="update">Update Existing</SelectItem>
+                        <SelectItem value="skip">Skip</SelectItem>
+                        <SelectItem value="create">Create New</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Duplicate Handling</Label>
-                  <Select defaultValue="update">
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue placeholder="Select duplicate handling" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="update">Update Existing</SelectItem>
-                      <SelectItem value="skip">Skip</SelectItem>
-                      <SelectItem value="create">Create New</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleImportCSV}>
-                  Import
-                </Button>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button variant="outline" type="button" onClick={() => setIsImportDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    Import
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
 
@@ -279,18 +370,6 @@ const Products = () => {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="sku">SKU</Label>
-                    <Input
-                      id="sku"
-                      name="sku"
-                      value={newProduct.sku}
-                      onChange={handleInputChange}
-                      placeholder="E.g., BW-1001"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
                     <Label htmlFor="category">Category</Label>
                     <Select
                       value={newProduct.category}
@@ -308,6 +387,55 @@ const Products = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={newProduct.description}
+                    onChange={handleInputChange}
+                    placeholder="Describe the product"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="warehouse">Warehouse</Label>
+                    <Select
+                      value={newProduct.warehouse}
+                      onValueChange={(value) => handleSelectChange("warehouse", value)}
+                    >
+                      <SelectTrigger id="warehouse">
+                        <SelectValue placeholder="Select warehouse" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.isArray(warehouses) && warehouses.length > 0
+                          ? warehouses.map((warehouse) => (
+                            <SelectItem key={warehouse._id} value={warehouse._id}>
+                              {warehouse.name}
+                            </SelectItem>
+                          ))
+                          : <SelectItem value="no-warehouses">No warehouses available</SelectItem>
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="stock">Initial Stock</Label>
+                    <Input
+                      id="stock"
+                      name="stock"
+                      type="number"
+                      min="0"
+                      value={newProduct.stock}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="unit">Unit</Label>
                     <Select
@@ -320,34 +448,46 @@ const Products = () => {
                       <SelectContent>
                         <SelectItem value="piece">Piece</SelectItem>
                         <SelectItem value="box">Box</SelectItem>
-                        <SelectItem value="kg">Kilogram</SelectItem>
-                        <SelectItem value="liter">Liter</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="threshold">Low Stock Threshold</Label>
+                    <Label htmlFor="minStockLevel">Min Stock Level</Label>
                     <Input
-                      id="threshold"
-                      name="threshold"
+                      id="minStockLevel"
+                      name="minStockLevel"
                       type="number"
                       min="0"
-                      value={newProduct.threshold.toString()}
+                      value={newProduct.minStockLevel}
                       onChange={handleInputChange}
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="hasExpiry" className="flex items-center justify-between">
+                    <Label htmlFor="isPerishable" className="flex items-center justify-between">
                       Track Expiry Date
                       <Switch
-                        id="hasExpiry"
-                        checked={newProduct.hasExpiry}
-                        onCheckedChange={handleSwitchChange}
+                        id="isPerishable"
+                        checked={newProduct.isPerishable}
+                        onCheckedChange={(checked) => handleSwitchChange("isPerishable", checked)}
                       />
                     </Label>
                   </div>
+                  {newProduct.isPerishable && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="defaultExpiryDays">Default Expiry Days</Label>
+                      <Input
+                        id="defaultExpiryDays"
+                        name="defaultExpiryDays"
+                        type="number"
+                        min="1"
+                        value={newProduct.defaultExpiryDays || ""}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -368,7 +508,7 @@ const Products = () => {
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search products by name or SKU..."
+              placeholder="Search products by name..."
               className="pl-8 w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -401,62 +541,272 @@ const Products = () => {
         </div>
 
         <div className="border rounded-md overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Stock Level</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>Barcode</TableHead>
-                <TableHead className="text-right">Min Stock Level</TableHead>
-                <TableHead>Perishable</TableHead>
-                <TableHead>Expiry Days</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{product.description}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell className="text-right">
-                      <span className={product.stock <= product.minStockLevel ? "text-red-500 font-medium" : ""}>
-                        {product.stock}
-                      </span>
-                      {product.stock <= product.minStockLevel && (
-                        <Badge variant="destructive" className="ml-2">Low</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{product.unit}</Badge>
-                    </TableCell>
-                    <TableCell className="font-mono">{product.barcode}</TableCell>
-                    <TableCell className="text-right">{product.minStockLevel}</TableCell>
-                    <TableCell>
-                      {product.isPerishable ? (
-                        <Badge variant="outline" className="bg-blue-50">Yes</Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-gray-50">No</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{product.defaultExpiryDays || '-'}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
+          {loading ? (
+            <div className="flex justify-center items-center p-12">
+              <div className="h-8 w-8 flex justify-center items-center">
+                <Spinner />
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-6 text-red-500">
+              {error}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-6 text-muted-foreground">
-                    No products found with the current filters.
-                  </TableCell>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Stock Level</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead className="text-right">Min Stock Level</TableHead>
+                  <TableHead>Perishable</TableHead>
+                  <TableHead>Expiry Days</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map((product) => (
+                    <TableRow key={product._id}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{product.description}</TableCell>
+                      <TableCell>{product.category}</TableCell>
+                      <TableCell className="text-right">
+                        <span className={product.stock <= product.minStockLevel ? "text-red-500 font-medium" : ""}>
+                          {product.stock}
+                        </span>
+                        {product.stock <= product.minStockLevel && (
+                          <Badge variant="destructive" className="ml-2">Low</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{product.unit}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{product.minStockLevel}</TableCell>
+                      <TableCell>
+                        {product.isPerishable ? (
+                          <Badge variant="outline" className="bg-blue-50">Yes</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-50">No</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{product.defaultExpiryDays || '-'}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => openEditDialog(product)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDeleteProduct(product._id, product.warehouse)}
+                            >
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
+                      No products found with the current filters.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
+
+        {/* Pagination controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center mt-4">
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
+
+      {/* Edit Product Dialog */}
+      {editingProduct && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Product</DialogTitle>
+              <DialogDescription>
+                Update the product details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">Product Name</Label>
+                  <Input
+                    id="edit-name"
+                    name="name"
+                    value={editingProduct.name}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select
+                    value={editingProduct.category}
+                    onValueChange={(value) => handleSelectChange("category", value)}
+                  >
+                    <SelectTrigger id="edit-category">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.slice(1).map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  name="description"
+                  value={editingProduct.description}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-warehouse">Warehouse</Label>
+                  <Select
+                    value={editingProduct.warehouse}
+                    onValueChange={(value) => handleSelectChange("warehouse", value)}
+                  >
+                    <SelectTrigger id="edit-warehouse">
+                      <SelectValue placeholder="Select warehouse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((warehouse) => (
+                        <SelectItem key={warehouse._id} value={warehouse._id}>
+                          {warehouse.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-stock">Stock Adjustment</Label>
+                  <Input
+                    id="edit-stock"
+                    name="stock"
+                    type="number"
+                    placeholder="Enter positive or negative value"
+                    onChange={handleInputChange}
+                  />
+                  <p className="text-xs text-muted-foreground">Current: {editingProduct.stock}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-unit">Unit</Label>
+                  <Select
+                    value={editingProduct.unit}
+                    onValueChange={(value) => handleSelectChange("unit", value)}
+                  >
+                    <SelectTrigger id="edit-unit">
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="piece">Piece</SelectItem>
+                      <SelectItem value="box">Box</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-minStockLevel">Min Stock Level</Label>
+                  <Input
+                    id="edit-minStockLevel"
+                    name="minStockLevel"
+                    type="number"
+                    min="0"
+                    value={editingProduct.minStockLevel}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-isPerishable" className="flex items-center justify-between">
+                    Track Expiry Date
+                    <Switch
+                      id="edit-isPerishable"
+                      checked={editingProduct.isPerishable}
+                      onCheckedChange={(checked) => handleSwitchChange("isPerishable", checked)}
+                    />
+                  </Label>
+                </div>
+                {editingProduct.isPerishable && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-defaultExpiryDays">Default Expiry Days</Label>
+                    <Input
+                      id="edit-defaultExpiryDays"
+                      name="defaultExpiryDays"
+                      type="number"
+                      min="1"
+                      value={editingProduct.defaultExpiryDays || ""}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateProduct}>
+                Update Product
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
