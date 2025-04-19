@@ -1,7 +1,7 @@
 import Product from '../models/Products.js';
 import Inventory from '../models/Inventory.js';
 import mongoose from 'mongoose';
-// import bar from '/utils/barcodeGenAPI.js'
+import bar from '/utils/barcodeGenAPI.js'
 // import { handleMovement } from '../utils/handleMovement.js';
 
 // Get all products
