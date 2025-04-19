@@ -156,7 +156,7 @@ const Products = () => {
   const handleUpdateProduct = async () => {
     try {
       const encodedName = encodeURIComponent(editingProduct.name);
-      await axios.patch(`${API_BASE_URL}/products/${encodedName}`, editingProduct);
+      await axios.patch(`${API_BASE_URL}/products/update/${encodedName}`, editingProduct);
       toast({
         title: "Product Updated",
         description: `${editingProduct.name} has been updated.`,
@@ -177,7 +177,7 @@ const Products = () => {
   const handleDeleteProduct = async (productId, warehouseId) => {
     if (confirm("Are you sure you want to delete this product?")) {
       try {
-        await axios.delete(`${API_BASE_URL}/products/${productId}/${warehouseId}`);
+        await axios.delete(`${API_BASE_URL}/products/delete/${productId}`);
         toast({
           title: "Product Deleted",
           description: "The product has been removed from the catalog.",
@@ -212,7 +212,7 @@ const Products = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      await axios.post(`${API_BASE_URL}/products/import`, formData, {
+      await axios.post(`${API_BASE_URL}/products`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
