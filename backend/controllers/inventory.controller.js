@@ -1,4 +1,4 @@
-import Inventory from "../models/inventory.js";
+import Inventory from "../models/Inventory.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 // Create Inventory
@@ -17,7 +17,9 @@ export const getAllInventories = asyncHandler(async (req, res) => {
 // Update Inventory
 export const updateInventory = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const inventory = await Inventory.findByIdAndUpdate(id, req.body, { new: true });
+  const inventory = await Inventory.findByIdAndUpdate(id, req.body, {
+    new: true,
+  });
 
   if (!inventory) {
     return res.status(404).json({ message: "Inventory not found" });
@@ -42,7 +44,11 @@ export const deleteInventory = asyncHandler(async (req, res) => {
 export const allocateStock = asyncHandler(async (req, res) => {
   const { productId, warehouseId, quantity } = req.body;
 
-  const inventory = await Inventory.allocateStock(productId, warehouseId, quantity);
+  const inventory = await Inventory.allocateStock(
+    productId,
+    warehouseId,
+    quantity
+  );
   res.status(200).json({ message: "Stock allocated", inventory });
 });
 
@@ -50,7 +56,11 @@ export const allocateStock = asyncHandler(async (req, res) => {
 export const releaseStock = asyncHandler(async (req, res) => {
   const { productId, warehouseId, quantity } = req.body;
 
-  const inventory = await Inventory.releaseAllocatedStock(productId, warehouseId, quantity);
+  const inventory = await Inventory.releaseAllocatedStock(
+    productId,
+    warehouseId,
+    quantity
+  );
   res.status(200).json({ message: "Allocated stock released", inventory });
 });
 
@@ -58,6 +68,11 @@ export const releaseStock = asyncHandler(async (req, res) => {
 export const adjustStock = asyncHandler(async (req, res) => {
   const { productId, warehouseId, quantity, reason } = req.body;
 
-  const inventory = await Inventory.adjustStock(productId, warehouseId, quantity, reason);
+  const inventory = await Inventory.adjustStock(
+    productId,
+    warehouseId,
+    quantity,
+    reason
+  );
   res.status(200).json({ message: "Stock adjusted", inventory });
 });

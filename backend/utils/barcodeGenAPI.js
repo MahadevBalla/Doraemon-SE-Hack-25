@@ -1,34 +1,15 @@
-import bwipjs from "bwip-js";
-import { randomBytes } from "crypto";
+// import { createHash } from "crypto";
 
-export const generate = async () => {
-  try {
-    // Generate cryptographically secure random string
-    const randomString = randomBytes(8).toString("hex").toUpperCase(); // 16 chars
+// export const generate = (productName) => {
+//   // Create SHA-256 hash from product name
+//   const hash = createHash("sha256").update(productName).digest("base64");
 
-    // Generate barcode buffer
-    const pngBuffer = await bwipjs.toBuffer({
-      bcid: "code128",
-      text: randomString,
-      scale: 2,
-      height: 10,
-      includetext: false,
-    });
-
-    // Convert to URL-safe base64
-    return pngBuffer
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "")
-      .substring(0, 30);
-  } catch (error) {
-    // Fallback with timestamp entropy
-    return `BC-${Date.now().toString(36)}-${Math.random()
-      .toString(36)
-      .slice(2, 6)}`
-      .toUpperCase()
-      .slice(0, 30);
-  }
-};
-export default generate;
+//   // Clean and format to match schema requirements
+//   return hash
+//     .replace(/[+/=]/g, "") // Remove problematic characters
+//     .slice(0, 30) // Truncate to max length
+//     .padEnd(30, "0") // Ensure minimum length
+//     .replace(/(.{5})/g, "$1-") // Add human-readable formatting
+//     .slice(0, 29); // Maintain exact 30 characters
+// };
+// export default generate;
