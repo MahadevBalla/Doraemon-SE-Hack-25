@@ -4,10 +4,15 @@ const WarehouseSchema = new mongoose.Schema({
     location: {
         address: String,
         city: String,
-        state: String,
-        country: String,
+        // state: String,
+        // country: String,
         postalCode: String,
-        coordinates: { type: [Number], index: '2dsphere' }
+        // coordinates: { type: [Number], index: '2dsphere' }
+    },
+    product: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Product', 
+        required: true 
     },
     capacity: Number,
     currentOccupancy: Number,
@@ -15,11 +20,12 @@ const WarehouseSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
-    isActive: { type: Boolean, default: true },
-    contact: {
-        phone: String,
-        email: String
-    }
+    // isActive: { type: Boolean, default: true },
+    // contact: {
+    //     phone: String,
+    //     email: String
+    // }
+
 }, { timestamps: true });
 const Warehouse = mongoose.model("Warehouse", WarehouseSchema);
 export default Warehouse;

@@ -1,24 +1,21 @@
 // controllers/movementController.js
-import Movement from '../models/Movement.js';
+import Movements from '../models/Movements.js';
 import Inventory from '../models/Inventory.js';
-import Product from '../models/Product.js';
-import Alert from '../models/Alert.js';
+import Product from '../models/Products.js';
+import Alert from '../models/Alerts.js';
 import mongoose from 'mongoose';
 
 // Middleware: Validate movement constraints
 export const validateMovement = async (req, res, next) => {
   const { type, product, quantity, fromWarehouse, toWarehouse } = req.body;
-  
-  // Basic validation
+
   if (!['purchase', 'sale', 'transfer', 'return', 'adjustment', 'write-off'].includes(type)) {
     return res.status(400).json({ message: 'Invalid movement type' });
   }
 
-  // Check product existence
   const productExists = await Product.exists({ _id: product });
   if (!productExists) return res.status(404).json({ message: 'Product not found' });
 
-  // Type-specific validation
   switch(type) {
     case 'transfer':
       if (!fromWarehouse || !toWarehouse) {
@@ -30,7 +27,6 @@ export const validateMovement = async (req, res, next) => {
       if (!fromWarehouse) {
         return res.status(400).json({ message: 'From warehouse required for sales' });
       }
-      // Check stock availability
       const currentStock = await Inventory.findOne({ product, warehouse: fromWarehouse });
       if ((currentStock?.quantity || 0) < quantity) {
         return res.status(400).json({ message: 'Insufficient stock' });
@@ -53,16 +49,14 @@ export const createMovement = async (req, res) => {
   session.startTransaction();
 
   try {
-    const movement = new Movement({
+    const movement = new Movements({
       ...req.body,
       status: 'completed',
-      initiatedBy: req.user.id // Assuming authenticated user
+      initiatedBy: req.user.id
     });
 
-    // Save movement
     await movement.save({ session });
 
-    // Update inventory based on movement type
     switch(movement.type) {
       case 'purchase':
         await Inventory.updateOne(
@@ -94,8 +88,26 @@ export const createMovement = async (req, res) => {
           )
         ]);
         break;
+    }
 
-      // Add cases for other types as needed
+    // Stock alert check after movement
+    const updatedInventory = await Inventory.findOne({
+      product: movement.product,
+      warehouse: movement.fromWarehouse
+    });
+
+    const productInfo = await Product.findById(movement.product);
+
+    if (updatedInventory?.quantity < (productInfo.minStockLevel || 0)) {
+      await Alert.create({
+        type: 'low-stock',
+        product: movement.product,
+        warehouse: movement.fromWarehouse,
+        threshold: productInfo.minStockLevel,
+        currentValue: updatedInventory.quantity,
+        severity: 'high',
+        status: 'active'
+      });
     }
 
     await session.commitTransaction();
@@ -128,14 +140,14 @@ export const getMovements = async (req, res) => {
       if (endDate) filter.createdAt.$lte = new Date(endDate);
     }
 
-    const movements = await Movement.find(filter)
+    const movements = await Movements.find(filter)
       .populate('product', 'name sku')
       .populate('fromWarehouse toWarehouse', 'name location')
       .sort('-createdAt')
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    const count = await Movement.countDocuments(filter);
+    const count = await Movements.countDocuments(filter);
 
     res.json({
       movements,
@@ -153,14 +165,13 @@ export const reverseMovement = async (req, res) => {
   session.startTransaction();
 
   try {
-    const original = await Movement.findById(req.params.id);
+    const original = await Movements.findById(req.params.id);
     if (!original) return res.status(404).json({ message: 'Movement not found' });
     if (original.status === 'reversed') {
       return res.status(400).json({ message: 'Movement already reversed' });
     }
 
-    // Create reversal movement
-    const reversal = new Movement({
+    const reversal = new Movements({
       ...original.toObject(),
       _id: undefined,
       reversalOf: original._id,
@@ -171,7 +182,6 @@ export const reverseMovement = async (req, res) => {
 
     await reversal.save({ session });
 
-    // Reverse inventory changes
     switch(original.type) {
       case 'purchase':
         await Inventory.updateOne(
@@ -205,7 +215,6 @@ export const reverseMovement = async (req, res) => {
         break;
     }
 
-    // Update original movement status
     original.status = 'reversed';
     await original.save({ session });
 
@@ -218,19 +227,3 @@ export const reverseMovement = async (req, res) => {
     session.endSession();
   }
 };
-
-const updatedInventory = await Inventory.findOne({ product: movement.product, warehouse: movement.fromWarehouse });
-
-const productInfo = await Product.findById(movement.product);
-
-if (updatedInventory.quantity < (productInfo.minStockLevel || 0)) {
-  await Alert.create({
-    type: 'low-stock',
-    product: movement.product,
-    warehouse: movement.fromWarehouse,
-    threshold: productInfo.minStockLevel,
-    currentValue: updatedInventory.quantity,
-    severity: 'high', // You can calculate based on how low it is
-    status: 'active'
-  });
-}

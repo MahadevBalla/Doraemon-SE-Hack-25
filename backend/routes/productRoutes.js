@@ -1,6 +1,6 @@
 // routes/productRoutes.js
 import express from 'express';
-import { getProducts, createProduct } from '../controllers/productController.js';
+import { getProducts, createProduct, purchaseProduct } from '../controllers/productController.js';
 import { validateProduct } from '../middlewares/validateProduct.js';
 
 const router = express.Router();
@@ -11,4 +11,6 @@ router.get('/', getProducts);
 // POST /api/products - Create new product
 router.post('/', validateProduct, createProduct);
 
+// DELETE route for purchases
+router.post('/purchase', purchaseProduct);
 export default router;

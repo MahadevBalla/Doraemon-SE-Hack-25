@@ -10,7 +10,7 @@ import {
 const router = express.Router();
 
 // Create movement
-router.post('/', validateMovement, createMovement);
+// router.post('/', validateMovement, createMovement);
 
 // Get movements with filters
 router.get('/', getMovements);

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 const AlertSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: ['low-stock', 'expiry', 'theft', 'discrepancy'],
+        enum: ['low-stock', 'expiry', 'discrepancy'],
         required: true
     },
     product: {
@@ -16,7 +16,7 @@ const AlertSchema = new mongoose.Schema({
     },
     threshold: Number,
     currentValue: Number,
-    severity: { type: String, enum: ['low', 'medium', 'high'] },
+    // severity: { type: String, enum: ['low', 'medium', 'high'] },
     status: {
         type: String,
         enum: ['active', 'acknowledged', 'resolved'],
