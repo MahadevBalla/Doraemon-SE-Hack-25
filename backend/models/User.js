@@ -19,13 +19,13 @@ const userSchema = new mongoose.Schema({
   },
   warehouses: [{
     type: mongoose.Schema.Types.ObjectId,                     // reference to Warehouse model
-    ref: 'Warehouse'
+    ref: 'Warehouse',
+    required: function() { return this.role !== 'admin'; } // Admin doesn't need warehouse
   }],
   lastLogin: Date,                                            // for logging login history
   isActive: { type: Boolean, default: true },                 // soft delete functionality
   refreshTokens: [String],                                    // multiple valid refresh tokens
-  createdAt: { type: Date, default: Date.now },               // redundant due to timestamps
-  updatedAt: Date                                             // redundant due to timestamps
+ 
 }, { timestamps: true });                                     // auto adds createdAt and updatedAt
 
 // 🔐 Hash password before save if it's modified

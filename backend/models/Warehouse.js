@@ -21,5 +21,5 @@ const WarehouseSchema = new mongoose.Schema({
         email: String
     }
 }, { timestamps: true });
-const Warehouse = mongoose.model("Warehouse", WarehouseSchema);
+const Warehouse = mongoose.model('Warehouse',WarehouseSchema);
 export default Warehouse;
