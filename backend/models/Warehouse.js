@@ -26,5 +26,5 @@ const WarehouseSchema = new mongoose.Schema({
     // }
 
 }, { timestamps: true });
-const Warehouse = mongoose.model('Warehouse',WarehouseSchema);
-export default Warehouse;
+const Warehouse = mongoose.models.Warehouse || mongoose.model('Warehouse', WarehouseSchema);
+export default Warehouse

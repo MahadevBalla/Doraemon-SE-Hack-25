@@ -90,3 +90,12 @@ export const loginUser = asyncHandler(async (req, res) => {
     tokens: { accessToken, refreshToken }
   });
 });
+
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find().select("-passwordHash -refreshTokens"); // Hide sensitive data
+  res.status(200).json({
+    message: "All users fetched successfully",
+    users,
+  });
+});
+
