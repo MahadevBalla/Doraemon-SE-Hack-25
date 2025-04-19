@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 const MovementSchema = new mongoose.Schema({
     type: {
         type: String,

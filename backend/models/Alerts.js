@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 const AlertSchema = new mongoose.Schema({
     type: {
         type: String,
