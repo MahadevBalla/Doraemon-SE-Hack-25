@@ -5,9 +5,13 @@ import {
   getMovementById,
   updateMovement,
   deleteMovement,
+  exportMovementsCSV
 } from "../controllers/movements.controller.js";
 
 const router = express.Router();
+
+//export as csv
+router.get("/export", exportMovementsCSV); 
 
 // Create a new movement
 router.post("/", createMovement);
@@ -17,6 +21,7 @@ router.get("/", getAllMovements);
 
 // Get a specific movement by ID
 router.get("/:id", getMovementById);
+
 
 // Update a movement
 router.patch("/:id", updateMovement);

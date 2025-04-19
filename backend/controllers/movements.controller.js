@@ -1,4 +1,5 @@
 import Movement from "../models/Movements.js";
+import { Parser } from "json2csv";
 
 // 📦 Create a new movement
 export const createMovement = async (req, res) => {
@@ -99,5 +100,49 @@ export const deleteMovement = async (req, res) => {
     res.status(200).json({ message: "Movement deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+//export as csv
+export const exportMovementsCSV = async (req, res) => {
+  try {
+    const movements = await Movement.find()
+      .populate("product", "name")
+      .populate("fromWarehouse", "name")
+      .populate("toWarehouse", "name")
+      .populate("initiatedBy", "username email")
+      .lean(); // return plain objects
+
+    const formatted = movements.map((m) => ({
+      Type: m.type,
+      Product: m.product?.name || "",
+      From: m.fromWarehouse?.name || "",
+      To: m.toWarehouse?.name || "",
+      Quantity: m.quantity,
+      InitiatedBy: m.initiatedBy?.username || "",
+      Status: m.status,
+      CreatedAt: m.createdAt,
+    }));
+
+    const fields = [
+      "Type",
+      "Product",
+      "From",
+      "To",
+      "Quantity",
+      "InitiatedBy",
+      "Status",
+      "CreatedAt",
+    ];
+
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(formatted);
+
+    res.header("Content-Type", "text/csv");
+    res.attachment("movements.csv");
+    res.send(csv);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to export CSV" });
   }
 };
