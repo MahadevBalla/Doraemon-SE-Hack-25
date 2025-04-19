@@ -1,8 +1,9 @@
-import { Router } from "express";
-import { createWarehouse } from "../controllers/warehouse.controller.js";
+import express from "express";
+import { addWarehouse, getAllWarehouses } from "../controllers/warehouse.controller.js";
 
-const router = Router();
+const router = express.Router();
 
-router.route("/create").post(createWarehouse);
+router.post("/", addWarehouse);     // Add new warehouse
+router.get("/", getAllWarehouses);  // Get all warehouses
 
 export default router;

@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import productRoutes from './routes/productRoutes.js';
 import userRoutes from './routes/user.routes.js';
 import movementRoutes from './routes/movementRouters.js';
+import warehouseRoutes from "./routes/warehouse.routes.js";
 const app = express();
 
 app.use(cors({
@@ -25,6 +26,7 @@ app.use(cookieParser())
 //routes declaration
 app.use("/api/v1/user", userRoutes);
 app.use('/api/v1/products', productRoutes);
+app.use("/api/v1/warehouse", warehouseRoutes);
 app.use("/api/v1/movements", movementRoutes);
 
 export default app;
