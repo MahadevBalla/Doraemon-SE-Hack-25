@@ -92,5 +92,5 @@ InventorySchema.statics.adjustStock = async function(productId, warehouseId, qua
 
     return inventory;
 };
-const Inventory = mongoose.model('Inventory', InventorySchema);
-export default Inventory;
+
+export default mongoose.models.Inventory || mongoose.model("Inventory", InventorySchema);

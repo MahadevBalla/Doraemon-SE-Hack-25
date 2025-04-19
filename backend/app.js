@@ -3,7 +3,11 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import productRoutes from "./routes/productRoutes.js";
 import userRoutes from "./routes/user.routes.js";
-import movementRoutes from "./routes/movementRouters.js";
+import movementRoutes from "./routes/movements.routes.js";
+import warehouseRoutes from "./routes/warehouse.routes.js";
+import alertsRoutes from "./routes/alerts.routes.js";
+import inventoryRoutes from "./routes/inventory.routes.js";
+
 const app = express();
 
 app.use(
@@ -35,6 +39,9 @@ app.use(cookieParser());
 //routes declaration
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/warehouse", warehouseRoutes);
 app.use("/api/v1/movements", movementRoutes);
+app.use("/api/v1/alerts", alertsRoutes);
+app.use("/api/v1/inventory", inventoryRoutes);
 
 export default app;
