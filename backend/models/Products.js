@@ -20,5 +20,5 @@ const ProductSchema = new mongoose.Schema({
     imageUrl: String,
     isActive: { type: Boolean, default: true }
 }, { timestamps: true });
-const Product = mongoose.model("Product", ProductSchema);
+const Product = mongoose.model('Product', ProductSchema);
 export default Product;

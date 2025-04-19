@@ -2,26 +2,35 @@ import { User } from "../models/User.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const registerUser = asyncHandler(async (req, res) => {
-  const { username, email, password, role } = req.body;
+  const { username, email, password, role, assignedWarehouse } = req.body;
 
+  // Validation
   if (!username || !email || !password || !role) {
-    return res.status(400).json({ message: "All fields are required" });
+    return res.status(400).json({ message: "Required fields: username, email, password, role" });
+  }
+
+  if (role !== 'admin' && !assignedWarehouse) {
+    return res.status(400).json({ 
+      message: "Warehouse assignment is required for non-admin roles" 
+    });
   }
 
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
   if (existingUser) {
-    return res.status(409).json({ message: "Email or Username already in use" });
+    return res.status(409).json({ message: "Email or username already exists" });
   }
 
   const newUser = new User({
     username,
     email,
-    passwordHash: password,
+    passwordHash: password, // Will be hashed by pre-save hook
     role,
+    assignedWarehouse: role === 'admin' ? undefined : assignedWarehouse
   });
 
   await newUser.save();
 
+  // Generate tokens
   const accessToken = newUser.generateAccessToken();
   const refreshToken = newUser.generateRefreshToken();
 
@@ -35,23 +44,22 @@ export const registerUser = asyncHandler(async (req, res) => {
       username: newUser.username,
       email: newUser.email,
       role: newUser.role,
+      assignedWarehouse: newUser.assignedWarehouse
     },
-    accessToken,
-    refreshToken,
+    tokens: { accessToken, refreshToken }
   });
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
-  const { emailOrUsername, password } = req.body;
+  const { username, password } = req.body; // Now only needs username + password
 
-  if (!emailOrUsername || !password) {
-    return res.status(400).json({ message: "Email/Username and password required" });
+  if (!username || !password) {
+    return res.status(400).json({ 
+      message: "Username and password are required" 
+    });
   }
 
-  const user = await User.findOne({
-    $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
-  });
-
+  const user = await User.findOne({ username });
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
@@ -61,9 +69,11 @@ export const loginUser = asyncHandler(async (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
+  // Generate new tokens
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
+  // Update user
   user.refreshTokens.push(refreshToken);
   user.lastLogin = new Date();
   await user.save();
@@ -75,8 +85,8 @@ export const loginUser = asyncHandler(async (req, res) => {
       username: user.username,
       email: user.email,
       role: user.role,
+      assignedWarehouse: user.assignedWarehouse
     },
-    accessToken,
-    refreshToken,
+    tokens: { accessToken, refreshToken }
   });
 });
