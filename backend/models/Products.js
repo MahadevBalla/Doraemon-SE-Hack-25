@@ -11,7 +11,18 @@ const ProductSchema = new mongoose.Schema({
     description: String,
     category: { type: String, index: true },
     unit: { type: String, enum: ['piece', 'box'], default: 'piece' },
-    barcode: String,
+    barcode: { 
+        type: String, 
+        unique: true,
+        index: true,
+        validate: {
+            validator: function(v) {
+                // Basic Code128 format validation
+                return /^[A-Za-z0-9\-*$%+\.\/ ]+$/.test(v) && v.length <= 30;
+            },
+            message: 'Invalid barcode format'
+        }
+    },
     // manufacturer: String,
     minStockLevel: Number,
     isPerishable: Boolean,

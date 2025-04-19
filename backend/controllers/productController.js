@@ -29,14 +29,25 @@ export const getProducts = async (req, res) => {
 export const createProduct = async (req, res) => {
     try {
         // Destructure required fields and others
-        const { name, warehouse, stock, ...otherFields } = req.body;
-        const barCode = bar.generator();
+        const { name, warehouse, stock,  category, description, unit, barcode, isPerishable, defaultExpiryDays } = req.body;
+        barcode = generate(name);
+        if (stock === 0) {
+            stock = 1;
+        }
+        else if (stock > 0) {
+            stock++;
+        }
         // Create product with validated schema fields
         const product = new Product({
             name,
             warehouse,
-            stock: stock || 0,  // Default to 0 if not provided
-            
+            stock: stock,  // Default to 0 if not provided
+            barcode: barcode,
+            category,
+            description,
+            unit,
+            isPerishable,
+            defaultExpiryDays
         });
 
         // Save to database
