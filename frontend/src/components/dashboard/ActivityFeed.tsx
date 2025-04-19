@@ -3,8 +3,7 @@ import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowRight, ArrowUp, Package } from "lucide-react";
 
 // Activity types
-export type ActivityType = "purchase" | "sale" | "transfer";
-
+type ActivityType = "Incoming" | "Outgoing" | "Transfer";
 // Activity interface
 export interface Activity {
   id: string;
@@ -27,11 +26,11 @@ interface ActivityFeedProps {
 // Activity icon mapping
 const ActivityIcon = ({ type }: { type: ActivityType }) => {
   switch (type) {
-    case "purchase":
+    case "Incoming":
       return <ArrowDown className="h-4 w-4 text-green-500" />;
-    case "sale":
+    case "Outgoing":
       return <ArrowUp className="h-4 w-4 text-red-500" />;
-    case "transfer":
+    case "Transfer":
       return <ArrowRight className="h-4 w-4 text-blue-500" />;
     default:
       return <Package className="h-4 w-4" />;
@@ -41,11 +40,11 @@ const ActivityIcon = ({ type }: { type: ActivityType }) => {
 // Activity type to text mapping
 const getActivityTitle = (type: ActivityType): string => {
   switch (type) {
-    case "purchase":
+    case "Incoming":
       return "Purchase";
-    case "sale":
+    case "Outgoing":
       return "Sale";
-    case "transfer":
+    case "Transfer":
       return "Transfer";
     default:
       return "Activity";
@@ -58,7 +57,7 @@ export function ActivityFeed({ activities, className }: ActivityFeedProps) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-medium">Activity Feed</h3>
       </div>
-      
+
       <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
         {activities.map((activity) => (
           <div key={activity.id} className="flex group animate-fade-in">
@@ -67,7 +66,7 @@ export function ActivityFeed({ activities, className }: ActivityFeedProps) {
                 <ActivityIcon type={activity.type} />
               </div>
             </div>
-            
+
             <div className="flex-1 space-y-1">
               <div className="flex items-center justify-between text-sm">
                 <div className="font-medium">
@@ -77,9 +76,9 @@ export function ActivityFeed({ activities, className }: ActivityFeedProps) {
                   {activity.timestamp}
                 </div>
               </div>
-              
+
               <p className="text-sm">{activity.description}</p>
-              
+
               <div className="flex items-center text-xs text-muted-foreground">
                 <span>{activity.user}</span>
                 <span className="mx-1">•</span>
