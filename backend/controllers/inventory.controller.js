@@ -1,5 +1,28 @@
 import Inventory from "../models/Inventory.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { Parser } from "json2csv";
+
+// GET /api/v1/inventory/export
+export const exportInventoryCSV = asyncHandler(async (req, res) => {
+  const inventories = await Inventory.find().lean();
+
+  if (!inventories || inventories.length === 0) {
+    return res
+      .status(404)
+      .json({ message: "No inventory data found to export" });
+  }
+
+  try {
+    const json2csvParser = new Parser();
+    const csv = json2csvParser.parse(inventories);
+
+    res.header("Content-Type", "text/csv");
+    res.attachment("inventory_export.csv");
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ message: "CSV export failed", error: err.message });
+  }
+});
 
 // Create Inventory
 export const createInventory = asyncHandler(async (req, res) => {

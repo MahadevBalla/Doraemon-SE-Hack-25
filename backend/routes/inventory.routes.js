@@ -6,7 +6,8 @@ import {
   deleteInventory,
   allocateStock,
   releaseStock,
-  adjustStock
+  adjustStock,
+  exportInventoryCSV,
 } from "../controllers/inventory.controller.js";
 
 const router = Router();
@@ -21,5 +22,7 @@ router.delete("/:id", deleteInventory);
 router.post("/allocate", allocateStock);
 router.post("/release", releaseStock);
 router.post("/adjust", adjustStock);
+
+router.get("/export", exportInventoryCSV);
 
 export default router;
