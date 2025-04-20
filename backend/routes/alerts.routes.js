@@ -10,7 +10,7 @@ import {
 const router = express.Router();
 
 router.get("/", getAllAlerts);
-router.post("/check", checkAlerts); // Scan and generate new alerts
+router.get("/check", checkAlerts); // Scan and generate new alerts
 router.patch("/:id/acknowledge", acknowledgeAlert);
 router.patch("/:id/resolve", resolveAlert);
 router.post("/", createAlert); // Optional: manual alert

@@ -1,13 +1,12 @@
 import Alerts from "../models/Alerts.js";
 import Product from "../models/Products.js";
 import Inventory from "../models/Inventory.js";
-import Movement from "../models/Movements.js";
 import Warehouse from "../models/Warehouse.js";
-import {ApiResponse} from "../utils/ApiResponse.js";
-import {asyncHandler} from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { sendMail } from "../utils/sendMail.js";
 import mongoose from "mongoose";
 
-// 🔁 1. Check and trigger various alerts
 export const checkAlerts = asyncHandler(async (req, res) => {
   const newAlerts = [];
 
@@ -15,6 +14,8 @@ export const checkAlerts = asyncHandler(async (req, res) => {
   const inventories = await Inventory.find();
   const warehouses = await Warehouse.find();
   const now = new Date();
+
+  const adminEmail = process.env.ADMIN_RECEIVER_EMAIL;
 
   // 🧮 LOW STOCK / OUT OF STOCK ALERTS
   for (const product of products) {
@@ -41,6 +42,19 @@ export const checkAlerts = asyncHandler(async (req, res) => {
           notes: "Stock below minimum threshold"
         });
         newAlerts.push(alert);
+
+        await sendMail({
+          subject: `🚨 Low Stock Alert: ${product.name}`,
+          to: adminEmail,
+          html: `
+            <h2>Low Stock Alert</h2>
+            <p><strong>Product:</strong> ${product.name}</p>
+            <p><strong>Warehouse:</strong> ${product.warehouse?.name}</p>
+            <p><strong>Current Quantity:</strong> ${inventory.quantity}</p>
+            <p><strong>Minimum Required:</strong> ${product.minStockLevel}</p>
+            <p>Status: <strong>Active</strong></p>
+          `
+        });
       }
     }
 
@@ -59,6 +73,17 @@ export const checkAlerts = asyncHandler(async (req, res) => {
           notes: "Product is completely out of stock"
         });
         newAlerts.push(alert);
+
+        await sendMail({
+          subject: `❗ Out of Stock: ${product.name}`,
+          to: adminEmail,
+          html: `
+            <h2>Out of Stock Alert</h2>
+            <p><strong>Product:</strong> ${product.name}</p>
+            <p><strong>Warehouse:</strong> ${product.warehouse?.name}</p>
+            <p>Status: <strong>Out of Stock</strong></p>
+          `
+        });
       }
     }
   }
@@ -69,6 +94,8 @@ export const checkAlerts = asyncHandler(async (req, res) => {
 
     const expiryDate = new Date(inv.batchInfo.expiryDate);
     const daysUntilExpiry = (expiryDate - now) / (1000 * 60 * 60 * 24);
+
+    const product = products.find(p => p._id.toString() === inv.product.toString());
 
     if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
       const exists = await Alerts.findOne({
@@ -86,6 +113,18 @@ export const checkAlerts = asyncHandler(async (req, res) => {
           notes: `Product will expire in ${Math.round(daysUntilExpiry)} days`
         });
         newAlerts.push(alert);
+
+        await sendMail({
+          subject: `⏳ Expiry Warning: ${product?.name}`,
+          to: adminEmail,
+          html: `
+            <h2>Expiry Alert</h2>
+            <p><strong>Product:</strong> ${product?.name}</p>
+            <p><strong>Warehouse:</strong> ${inv.warehouse}</p>
+            <p><strong>Expires in:</strong> ${Math.round(daysUntilExpiry)} days</p>
+            <p><strong>Quantity:</strong> ${inv.quantity}</p>
+          `
+        });
       }
     }
 
@@ -105,6 +144,18 @@ export const checkAlerts = asyncHandler(async (req, res) => {
           notes: "Product has already expired"
         });
         newAlerts.push(alert);
+
+        await sendMail({
+          subject: `❌ Expired Product: ${product?.name}`,
+          to: adminEmail,
+          html: `
+            <h2>Product Expired</h2>
+            <p><strong>Product:</strong> ${product?.name}</p>
+            <p><strong>Warehouse:</strong> ${inv.warehouse}</p>
+            <p><strong>Expiry Date:</strong> ${expiryDate.toDateString()}</p>
+            <p><strong>Quantity:</strong> ${inv.quantity}</p>
+          `
+        });
       }
     }
   }
@@ -129,6 +180,17 @@ export const checkAlerts = asyncHandler(async (req, res) => {
           notes: `Warehouse over capacity (${warehouse.currentOccupancy}/${warehouse.capacity})`
         });
         newAlerts.push(alert);
+
+        await sendMail({
+          subject: `🏭 Over Capacity: ${warehouse.name}`,
+          to: adminEmail,
+          html: `
+            <h2>Warehouse Over Capacity</h2>
+            <p><strong>Warehouse:</strong> ${warehouse.name}</p>
+            <p><strong>Capacity:</strong> ${warehouse.capacity}</p>
+            <p><strong>Current Occupancy:</strong> ${warehouse.currentOccupancy}</p>
+          `
+        });
       }
     }
   }
@@ -138,13 +200,11 @@ export const checkAlerts = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, newAlerts, `${newAlerts.length} alerts generated`));
 });
 
-
 // ✅ 2. Get all alerts
 export const getAllAlerts = asyncHandler(async (req, res) => {
   const alerts = await Alerts.find().populate("product warehouse");
   res.status(200).json(new ApiResponse(200, alerts, "All alerts fetched"));
 });
-
 
 // ✅ 3. Acknowledge an alert
 export const acknowledgeAlert = asyncHandler(async (req, res) => {
@@ -157,7 +217,6 @@ export const acknowledgeAlert = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, alert, "Alert acknowledged"));
 });
 
-
 // ✅ 4. Resolve an alert
 export const resolveAlert = asyncHandler(async (req, res) => {
   const alert = await Alerts.findById(req.params.id);
@@ -168,7 +227,6 @@ export const resolveAlert = asyncHandler(async (req, res) => {
   await alert.save();
   res.status(200).json(new ApiResponse(200, alert, "Alert resolved"));
 });
-
 
 // ✅ 5. Create alert manually (optional)
 export const createAlert = asyncHandler(async (req, res) => {
