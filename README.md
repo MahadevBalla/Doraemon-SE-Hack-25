@@ -172,6 +172,5 @@ MIT License – use freely with attribution.
 ---
 
 ## 📧 Contact
-
-Made with ❤️ by [Aayush](https://github.com/aayush-48)  
+ 
 For collaborations or suggestions, feel free to reach out via GitHub issues or pull requests.
