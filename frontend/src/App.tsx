@@ -16,6 +16,7 @@ import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+
+            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
 
             {/* All protected routes now share a single AppLayout */}
