@@ -1,96 +1,88 @@
 import mongoose from "mongoose";
+import Product from "./Products.js";
 
-const InventorySchema = new mongoose.Schema({
-//   product: { 
-//     type: mongoose.Schema.Types.ObjectId, 
-//     ref: 'Product', 
-//     required: true 
-//   },
-//   warehouse: { 
-//     type: mongoose.Schema.Types.ObjectId, 
-//     ref: 'Warehouse', 
-//     required: true 
-//   },
-  quantity: { type: Number, required: true, default: 0 },
-    amount: { type: Number, default: 0 },
-  
-  allocatedQuantity: { type: Number, default: 0 },
-  lastUpdated: { type: Date, default: Date.now },
-  batchInfo: {
-    batchNumber: String,
-    expiryDate: Date,
-    manufacturingDate: Date,
-    supplier: String
+const InventorySchema = new mongoose.Schema(
+  {
+    products: [
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+          unique: true, // Ensures one entry per product
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        lastUpdated: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
-  locationInWarehouse: String,
-  value: {
-    costPrice: Number,
-    retailPrice: Number,
-    currency: { type: String, default: 'USD' }
-  }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-// Compound index for fast lookups
-InventorySchema.index({ product: 1, warehouse: 1 }, { unique: true });
+// Validation hook
+InventorySchema.pre("save", async function (next) {
+  for (const item of this.products) {
+    const product = await Product.findById(item.product);
+    if (!product) {
+      return next(new Error(`Product ${item.product} not found`));
+    }
+    if (item.quantity < product.minStockLevel) {
+      return next(
+        new Error(
+          `Quantity for ${product.name} cannot be below minimum stock level of ${product.minStockLevel}`
+        )
+      );
+    }
+  }
+  next();
+});
 
 // Static methods
-InventorySchema.statics.allocateStock = async function(productId, warehouseId, quantity) {
-    if (quantity <= 0) {
-        throw new Error('Allocation quantity must be positive');
-    }
-
-    const inventory = await this.findOneAndUpdate(
-        { product: productId, warehouse: warehouseId },
-        { 
-            $inc: { allocatedQuantity: quantity },
-            $set: { lastUpdated: new Date() }
-        },
-        { new: true }
-    ).populate('product warehouse');
-
-    if (!inventory) {
-        throw new Error('Inventory record not found');
-    }
-
-    if (inventory.quantity < inventory.allocatedQuantity) {
-        throw new Error('Insufficient stock for allocation');
-    }
-
-    return inventory;
+InventorySchema.statics.syncProduct = async function (productId, quantity) {
+  return this.findOneAndUpdate(
+    { "products.product": productId },
+    {
+      $set: {
+        "products.$.quantity": quantity,
+        "products.$.lastUpdated": new Date(),
+      },
+    },
+    { new: true }
+  ).populate("products.product");
 };
 
-InventorySchema.statics.releaseAllocatedStock = async function(productId, warehouseId, quantity) {
-    if (quantity <= 0) {
-        throw new Error('Release quantity must be positive');
+InventorySchema.statics.adjustStock = async function (
+  productId,
+  warehouseId,
+  quantity,
+  adjustmentReason,
+  session
+) {
+  return this.findOneAndUpdate(
+    {
+      warehouse: warehouseId,
+      "products.product": productId,
+    },
+    {
+      $inc: { "products.$.quantity": quantity },
+      $set: {
+        "products.$.lastUpdated": new Date(),
+        "products.$.adjustmentReason": adjustmentReason,
+      },
+    },
+    {
+      new: true,
+      upsert: true,
+      session,
     }
-
-    const inventory = await this.findOneAndUpdate(
-        { product: productId, warehouse: warehouseId },
-        { 
-            $inc: { allocatedQuantity: -quantity },
-            $set: { lastUpdated: new Date() }
-        },
-        { new: true }
-    ).populate('product warehouse');
-
-    if (!inventory) {
-        throw new Error('Inventory record not found');
-    }
-
-    return inventory;
+  ).populate("products.product warehouse");
 };
-
-InventorySchema.statics.adjustStock = async function(productId, warehouseId, quantity, adjustmentReason) {
-    const inventory = await this.findOneAndUpdate(
-        { product: productId, warehouse: warehouseId },
-        { 
-            $inc: { quantity: quantity },
-            $set: { lastUpdated: new Date() }
-        },
-        { new: true, upsert: true }
-    ).populate('product warehouse');
-
-    return inventory;
-};
-
-export default mongoose.models.Inventory || mongoose.model("Inventory", InventorySchema);
+const Inventory = mongoose.model("Inventory", InventorySchema);
+export default Inventory;
