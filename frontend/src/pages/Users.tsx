@@ -9,14 +9,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import axios from "axios";
 
 // Import the interfaces
-import { User, Warehouse } from "@/types/index";
+import { User } from "@/types/index";
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
@@ -34,25 +33,21 @@ const Users = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const { toast } = useToast();
 
-  // Form state for new user
+  // Form state for new user - simplified
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
-    password: "", // For creating new users
+    password: "",
     role: "staff" as 'admin' | 'manager' | 'staff',
-    isActive: true,
-    assignedWarehouse: "", // Single warehouse assignment per user
   });
 
-  // Fetch users and warehouses on component mount
+  // Fetch users on component mount
   useEffect(() => {
     fetchUsers();
-    fetchWarehouses();
   }, []);
 
   const fetchUsers = async () => {
@@ -73,24 +68,6 @@ const Users = () => {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchWarehouses = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/warehouses`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
-        }
-      });
-      setWarehouses(response.data.warehouses);
-    } catch (error) {
-      console.error("Error fetching warehouses:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load warehouses. Please try again.",
-        variant: "destructive"
-      });
     }
   };
 
@@ -118,9 +95,9 @@ const Users = () => {
       errors.password = "Password must be at least 6 characters";
     }
 
-    // Warehouse validation based on role
-    if (newUser.role !== "admin" && !newUser.assignedWarehouse) {
-      errors.assignedWarehouse = "Manager and staff users must have a warehouse assigned";
+    // Role validation
+    if (!newUser.role) {
+      errors.role = "Role is required";
     }
 
     setFormErrors(errors);
@@ -142,15 +119,6 @@ const Users = () => {
     if (formErrors[name]) {
       setFormErrors({ ...formErrors, [name]: "" });
     }
-
-    // If role changes to admin, we can clear warehouse selection
-    if (name === "role" && value === "admin") {
-      setNewUser(prev => ({ ...prev, assignedWarehouse: "" }));
-    }
-  };
-
-  const handleSwitchChange = (checked: boolean) => {
-    setNewUser({ ...newUser, isActive: checked });
   };
 
   const handleAddUser = async () => {
@@ -162,17 +130,15 @@ const Users = () => {
     try {
       setIsLoading(true);
 
-      // Prepare data for API
+      // Prepare data for API call - simplified to only include required fields
       const userData = {
         username: newUser.username,
         email: newUser.email,
         password: newUser.password,
         role: newUser.role,
-        assignedWarehouse: newUser.role === "admin" ? undefined : newUser.assignedWarehouse,
-        isActive: newUser.isActive
       };
 
-      // Call register API endpoint
+      // Call the register API endpoint
       const response = await axios.post(`${API_BASE_URL}/user/register`, userData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`
@@ -181,8 +147,8 @@ const Users = () => {
 
       if (response.data) {
         toast({
-          title: "User Added",
-          description: `${newUser.username} has been added with ${newUser.role} role.`,
+          title: "Success",
+          description: `User ${newUser.username} has been added successfully.`,
         });
 
         // Refresh the user list
@@ -195,9 +161,8 @@ const Users = () => {
           email: "",
           password: "",
           role: "staff",
-          isActive: true,
-          assignedWarehouse: "",
         });
+        setFormErrors({});
       }
     } catch (error: any) {
       console.error("Error adding user:", error);
@@ -254,12 +219,6 @@ const Users = () => {
     admin: <Shield className="h-5 w-5 text-primary" />,
     manager: <UserCog className="h-5 w-5 text-blue-500" />,
     staff: <UserCheck className="h-5 w-5 text-green-500" />,
-  };
-
-  // Get warehouse name from ID
-  const getWarehouseName = (warehouseId: string) => {
-    const warehouse = warehouses.find(w => w._id === warehouseId);
-    return warehouse ? warehouse.name : "Unknown";
   };
 
   // Handle password reset
@@ -368,41 +327,6 @@ const Users = () => {
                     {newUser.role && roleDescriptions[newUser.role]}
                   </p>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="assignedWarehouse">
-                    Assigned Warehouse
-                    {newUser.role !== "admin" && <span className="text-red-500">*</span>}
-                    {newUser.role === "admin" && <span className="text-xs text-muted-foreground ml-2">(Optional for Admins)</span>}
-                  </Label>
-                  <Select
-                    value={newUser.assignedWarehouse}
-                    onValueChange={(value) => handleSelectChange("assignedWarehouse", value)}
-                    disabled={isLoading || newUser.role === "admin"}
-                  >
-                    <SelectTrigger id="assignedWarehouse" className={formErrors.assignedWarehouse ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select warehouse" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warehouses.map(warehouse => (
-                        <SelectItem key={warehouse._id} value={warehouse._id}>
-                          {warehouse.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {formErrors.assignedWarehouse && (
-                    <p className="text-xs text-red-500">{formErrors.assignedWarehouse}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="isActive" className="flex-1">Active Account</Label>
-                  <Switch
-                    id="isActive"
-                    checked={newUser.isActive}
-                    onCheckedChange={handleSwitchChange}
-                    disabled={isLoading}
-                  />
-                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddUserOpen(false)} disabled={isLoading}>
@@ -493,9 +417,8 @@ const Users = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Warehouse</TableHead>
+                {/* <TableHead>Warehouse</TableHead> */}
                 <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -518,7 +441,7 @@ const Users = () => {
                         <span className="capitalize">{user.role}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                       {typeof user.warehouses === 'string' ? (
                         <Badge variant="outline" className="text-xs">
                           {getWarehouseName(user.warehouses)}
@@ -534,7 +457,7 @@ const Users = () => {
                       ) : (
                         <span className="text-muted-foreground text-sm">None assigned</span>
                       )}
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell>
                       {user.isActive ? (
                         <Badge className="bg-green-500">Active</Badge>
@@ -542,7 +465,6 @@ const Users = () => {
                         <Badge variant="outline" className="border-muted-foreground">Inactive</Badge>
                       )}
                     </TableCell>
-                    {/* <TableCell>{formatDate(user.lastLogin)}</TableCell> */}
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -562,7 +484,7 @@ const Users = () => {
                             Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-red-500"
                             onClick={() => handleDeleteUser(user._id)}
                           >

@@ -2,7 +2,7 @@ import { User } from "../models/User.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const registerUser = asyncHandler(async (req, res) => {
-  const { username, email, password, role, assignedWarehouse } = req.body;
+  const { username, email, password, role } = req.body;
 
   // Validation
   if (!username || !email || !password || !role) {
@@ -11,11 +11,11 @@ export const registerUser = asyncHandler(async (req, res) => {
       .json({ message: "Required fields: username, email, password, role" });
   }
 
-  if (role !== "admin" && !assignedWarehouse) {
-    return res.status(400).json({
-      message: "Warehouse assignment is required for non-admin roles",
-    });
-  }
+  // if (role !== "admin" && !assignedWarehouse) {
+  //   return res.status(400).json({
+  //     message: "Warehouse assignment is required for non-admin roles",
+  //   });
+  // }
 
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
   if (existingUser) {
@@ -29,7 +29,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     email,
     passwordHash: password, // Will be hashed by pre-save hook
     role,
-    assignedWarehouse: role === "admin" ? undefined : assignedWarehouse,
+    // assignedWarehouse: role === "admin" ? undefined : assignedWarehouse,
   });
 
   await newUser.save();
@@ -48,7 +48,7 @@ export const registerUser = asyncHandler(async (req, res) => {
       username: newUser.username,
       email: newUser.email,
       role: newUser.role,
-      assignedWarehouse: newUser.assignedWarehouse,
+      // assignedWarehouse: newUser.assignedWarehouse,
     },
     tokens: { accessToken, refreshToken },
   });
@@ -90,7 +90,7 @@ export const loginUser = asyncHandler(async (req, res) => {
       username: user.username,
       email: user.email,
       role: user.role,
-      assignedWarehouse: user.assignedWarehouse,
+      // assignedWarehouse: user.assignedWarehouse,
     },
     tokens: { accessToken, refreshToken },
   });
@@ -103,4 +103,3 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     users,
   });
 });
-
