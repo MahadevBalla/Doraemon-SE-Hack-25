@@ -17,7 +17,7 @@ const logsData = [
     product: "Blue Widgets",
     quantity: 50,
     warehouse: "Warehouse A",
-    user: "John Doe",
+    user: "Tanay Kinariwala",
   },
   {
     id: "log2",
@@ -26,7 +26,7 @@ const logsData = [
     product: "Red Gadgets",
     quantity: 25,
     warehouse: "Warehouse B",
-    user: "Sarah Chen",
+    user: "Tanay K",
   },
   {
     id: "log3",
@@ -36,7 +36,7 @@ const logsData = [
     quantity: 30,
     warehouse: "Warehouse A",
     destination: "Warehouse C",
-    user: "Mike Johnson",
+    user: "Paarth Shah",
   },
   {
     id: "log4",
@@ -45,7 +45,7 @@ const logsData = [
     product: "Yellow Gadgets",
     quantity: 100,
     warehouse: "Warehouse B",
-    user: "Lisa Wong",
+    user: "Mahadev",
   },
   {
     id: "log5",
@@ -54,7 +54,7 @@ const logsData = [
     product: "Purple Widgets",
     quantity: 15,
     warehouse: "Warehouse C",
-    user: "Alex Smith",
+    user: "Aayush Kumar",
   },
 ];
 

@@ -105,33 +105,6 @@ const Dashboard = () => {
             Welcome to Doraemon - your inventory management hub
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Time range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7days">Last 7 days</SelectItem>
-              <SelectItem value="30days">Last 30 days</SelectItem>
-              <SelectItem value="90days">Last 90 days</SelectItem>
-              <SelectItem value="1year">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Warehouses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Warehouses</SelectItem>
-              <SelectItem value="wh-1">Warehouse A</SelectItem>
-              <SelectItem value="wh-2">Warehouse B</SelectItem>
-              <SelectItem value="wh-3">Warehouse C</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleExportReport}>
-            Export Report
-          </Button>
-        </div>
       </div>
 
       {/* Stats Cards */}

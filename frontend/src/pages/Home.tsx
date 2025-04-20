@@ -52,7 +52,7 @@ export default function DoraemonLandingPage() {
             {/* Header */}
             <header className={`sticky top-0 z-10 py-4 px-6 md:px-12 flex justify-between items-center transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-blue-50'}`}>
                 <div className="flex items-center gap-2">
-                    <Boxes className={`${darkMode ? 'text-blue-400' : 'text-blue-600'}`} size={32} />
+                    <img src="https://w7.pngwing.com/pngs/243/702/png-transparent-doraemon-drawing-wikia-doraemon-doraemon-drawing-wikia-thumbnail.png" height="50px" width="50px" />
                     <h1 className="text-2xl font-bold">Doraemon</h1>
                 </div>
 
@@ -72,8 +72,13 @@ export default function DoraemonLandingPage() {
                         {darkMode ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
 
-                    <button className={`hidden md:block py-2 px-4 rounded-lg font-medium transition-colors ${darkMode ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                        Get Started
+                    <button >
+                                <a
+                                    href="/login"
+                                    className={`hidden md:block py-2 px-4 rounded-lg font-medium transition-colors ${darkMode ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                >
+                                    Get Started
+                                </a>
                     </button>
                 </div>
             </header>
@@ -85,9 +90,14 @@ export default function DoraemonLandingPage() {
                     <p className="text-lg mb-8 opacity-90">Streamline your inventory across multiple warehouses. Track stock changes, manage team access, and generate insightful reports—all in real-time.</p>
 
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <button className={`py-3 px-6 rounded-lg font-medium text-white transition-transform hover:scale-105 ${darkMode ? 'bg-blue-600' : 'bg-blue-600'}`}>
-                            Start Free Trial
-                        </button>
+                    <button >
+                                <a
+                                    href="/login"
+                                    className={`hidden md:block py-3 px-6 rounded-lg font-medium transition-colors ${darkMode ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                >
+                                    Start Free Trial
+                                </a>
+                    </button>
                         <button className={`py-3 px-6 rounded-lg font-medium border-2 transition-transform hover:scale-105 ${darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-blue-200 hover:border-blue-300'}`}>
                             Book a Demo
                         </button>

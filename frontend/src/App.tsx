@@ -61,7 +61,7 @@ const App = () => (
 
             {/* All protected routes now share a single AppLayout */}
             <Route element={<ProtectedLayout />}>
-              <Route path="/" element={<Index />} />
+              <Route path="/index" element={<Index />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/products" element={<Products />} />
               <Route path="/stock" element={<Stock />} />

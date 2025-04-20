@@ -38,7 +38,7 @@ const stockData = [
     value: {
       costPrice: 75.50,
       retailPrice: 120.00,
-      currency: "USD"
+      currency: "INR"
     }
   },
   {
@@ -65,7 +65,7 @@ const stockData = [
     value: {
       costPrice: 75.50,
       retailPrice: 120.00,
-      currency: "USD"
+      currency: "INR"
     }
   },
   {
@@ -92,7 +92,7 @@ const stockData = [
     value: {
       costPrice: 45.25,
       retailPrice: 89.99,
-      currency: "USD"
+      currency: "INR"
     }
   },
   {
@@ -119,7 +119,7 @@ const stockData = [
     value: {
       costPrice: 45.25,
       retailPrice: 89.99,
-      currency: "USD"
+      currency: "INR"
     }
   },
   {
@@ -146,7 +146,7 @@ const stockData = [
     value: {
       costPrice: 35.75,
       retailPrice: 69.99,
-      currency: "USD"
+      currency: "INR"
     }
   },
   {
@@ -173,7 +173,7 @@ const stockData = [
     value: {
       costPrice: 55.25,
       retailPrice: 99.99,
-      currency: "USD"
+      currency: "INR"
     }
   },
   {
@@ -200,7 +200,7 @@ const stockData = [
     value: {
       costPrice: 25.50,
       retailPrice: 49.99,
-      currency: "USD"
+      currency: "INR"
     }
   }
 ];
@@ -329,7 +329,7 @@ const Stock = () => {
     });
   };
 
-  const formatCurrency = (value: number, currency: string = "USD") => {
+  const formatCurrency = (value: number, currency: string = "INR") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency
