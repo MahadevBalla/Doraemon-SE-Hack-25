@@ -29,7 +29,6 @@ export const getAllInventories = asyncHandler(async (req, res) => {
     })),
   });
 });
-
 // Update Inventory
 export const updateInventory = asyncHandler(async (req, res) => {
   const { id } = req.params;
