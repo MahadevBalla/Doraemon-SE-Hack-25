@@ -279,11 +279,38 @@ const Stock = () => {
   };
 
   const handleExportCSV = () => {
-    toast({
-      title: "CSV Export Started",
-      description: "Your inventory data is being exported to CSV.",
-    });
-  };
+    fetch('http://localhost:8000/api/v1/inventory/export')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        // Create a URL for the blob
+        const url = window.URL.createObjectURL(blob);
+
+        // Create a temporary anchor element
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+
+        // Set the file name
+        a.download = 'inventory-export.csv';
+
+        // Append to the document and trigger the download
+        document.body.appendChild(a);
+        a.click();
+
+        // Clean up
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      })
+      .catch(error => {
+        console.error('Error downloading CSV:', error);
+        // You might want to show an error notification to the user here
+      });
+  }
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -387,7 +414,7 @@ const Stock = () => {
           <Dialog open={isAddStockOpen} onOpenChange={setIsAddStockOpen}>
 
             <DialogContent className="max-w-lg">
-    
+
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
@@ -891,7 +918,7 @@ const Stock = () => {
           )}
         </DialogContent>
       </Dialog>
-    </>                                             
+    </>
   );
 };
 
