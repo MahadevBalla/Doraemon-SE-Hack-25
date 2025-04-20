@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import doraemon from './Doreamon__1_-removebg-preview.png';
 import {
     Boxes,
     BarChart3,
@@ -52,7 +53,8 @@ export default function DoraemonLandingPage() {
             {/* Header */}
             <header className={`sticky top-0 z-10 py-4 px-6 md:px-12 flex justify-between items-center transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-blue-50'}`}>
                 <div className="flex items-center gap-2">
-                    <img src="https://w7.pngwing.com/pngs/243/702/png-transparent-doraemon-drawing-wikia-doraemon-doraemon-drawing-wikia-thumbnail.png" height="50px" width="50px" />
+                    <img src={doraemon} height="5`
+                    0px" width="50px" />
                     <h1 className="text-2xl font-bold">Doraemon</h1>
                 </div>
 
