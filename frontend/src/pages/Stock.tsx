@@ -385,19 +385,9 @@ const Stock = () => {
           </Button>
 
           <Dialog open={isAddStockOpen} onOpenChange={setIsAddStockOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Stock
-              </Button>
-            </DialogTrigger>
+
             <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Add Stock</DialogTitle>
-                <DialogDescription>
-                  Add inventory to an existing product or create a new product.
-                </DialogDescription>
-              </DialogHeader>
+    
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
@@ -901,7 +891,7 @@ const Stock = () => {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </>                                             
   );
 };
 

@@ -263,7 +263,7 @@ const Sidebar = ({ currentUser }: SidebarProps) => {
             exit={{ opacity: 0 }}
             className="font-bold text-lg"
           >
-            Inventory Pro
+            Doraemon
           </motion.div>
         )}
         <Button

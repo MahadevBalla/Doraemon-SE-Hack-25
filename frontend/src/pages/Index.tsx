@@ -161,6 +161,11 @@ const Dashboard = () => {
               data={stockLevelData}
               className="lg:col-span-2"
             />
+            
+              <InventoryAlerts 
+                alerts={inventoryAlerts}
+                className="h-full"
+              />
             {/* <ActivityFeed
               activities={activityFeed.slice(0, 4)}
             /> */}

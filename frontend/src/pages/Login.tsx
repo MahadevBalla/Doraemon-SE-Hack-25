@@ -15,6 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import InteractiveGrid from "@/components/animata/background/interactive-grid"
+
 
 // Form schema
 const loginFormSchema = z.object({
@@ -150,7 +152,9 @@ const Login = () => {
     const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+        
+        <InteractiveGrid className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="flex items-center justify-center min-h-screen p-4">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -282,7 +286,9 @@ const Login = () => {
                 </Card>
             </motion.div>
         </div>
+        </InteractiveGrid>
     );
+    
 };
 
 export default Login;

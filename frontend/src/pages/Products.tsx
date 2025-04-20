@@ -193,74 +193,7 @@ const Products = () => {
     }
   };
 
-  // Import CSV
-  const handleImportCSV = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const file = formData.get('csvFile');
-
-    if (!file) {
-      toast({
-        title: "Error",
-        description: "Please select a CSV file",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      await axios.post(`${API_BASE_URL}/products`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      toast({
-        title: "CSV Import Successful",
-        description: "Your products have been imported.",
-      });
-      setIsImportDialogOpen(false);
-      fetchProducts(); // Refetch products after import
-    } catch (err) {
-      toast({
-        title: "Import Failed",
-        description: err.response?.data?.message || "Failed to import products",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Export CSV
-  const handleExportCSV = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/products/export`, {
-        responseType: 'blob'
-      });
-
-      // Create a download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `products-export-${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast({
-        title: "CSV Export Complete",
-        description: "Your product catalog has been exported to CSV.",
-      });
-    } catch (err) {
-      toast({
-        title: "Export Failed",
-        description: "Failed to export products",
-        variant: "destructive"
-      });
-    }
-  };
+ 
 
   // Filter products based on search and filters
   const filteredProducts = products.filter((product) => {
@@ -292,56 +225,7 @@ const Products = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <FileUp className="h-4 w-4 mr-2" />
-                Import CSV
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Import Products from CSV</DialogTitle>
-                <DialogDescription>
-                  Upload a CSV file to bulk import products. The file should contain columns for Name, Category, Unit, and Min Stock Level.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleImportCSV}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="csvFile">CSV File</Label>
-                    <Input id="csvFile" name="csvFile" type="file" accept=".csv" />
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Duplicate Handling</Label>
-                    <Select defaultValue="update" name="duplicateHandling">
-                      <SelectTrigger className="w-full mt-1">
-                        <SelectValue placeholder="Select duplicate handling" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="update">Update Existing</SelectItem>
-                        <SelectItem value="skip">Skip</SelectItem>
-                        <SelectItem value="create">Create New</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" type="button" onClick={() => setIsImportDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    Import
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          <Button variant="outline" onClick={handleExportCSV}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
+          
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
