@@ -6,8 +6,13 @@ import {
   deleteInventory,
   allocateStock,
   releaseStock,
-  adjustStock
+  adjustStock,
+  importInventoryXLSX,
+  exportInventoryCSV
 } from "../controllers/inventory.controller.js";
+import { upload } from "../middlewares/uploadMiddleware.js";
+
+
 
 const router = Router();
 
@@ -21,5 +26,9 @@ router.delete("/:id", deleteInventory);
 router.post("/allocate", allocateStock);
 router.post("/release", releaseStock);
 router.post("/adjust", adjustStock);
+
+router.post("/import/xlsx", upload.single("file"), importInventoryXLSX);
+router.get("/export", exportInventoryCSV);
+
 
 export default router;

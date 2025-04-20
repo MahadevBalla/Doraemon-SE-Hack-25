@@ -30,9 +30,6 @@ const InventorySchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Compound index for fast lookups
-InventorySchema.index({ product: 1, warehouse: 1 }, { unique: true });
-
 // Static methods
 InventorySchema.statics.allocateStock = async function(productId, warehouseId, quantity) {
     if (quantity <= 0) {

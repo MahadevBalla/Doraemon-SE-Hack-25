@@ -8,7 +8,9 @@ import warehouseRoutes from "./routes/warehouse.routes.js";
 import alertsRoutes from "./routes/alerts.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
 
+
 const app = express();
+
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
