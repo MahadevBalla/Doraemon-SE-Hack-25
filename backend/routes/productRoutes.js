@@ -5,6 +5,7 @@ import {
   createProduct,
   purchaseProduct,
   updateProduct,
+  deleteProduct,
 } from "../controllers/productController.js";
 import { validateProduct } from "../middlewares/validateProduct.js";
 
@@ -20,5 +21,8 @@ router.post("/", validateProduct, createProduct);
 router.post("/purchase", purchaseProduct);
 
 //Update a product
-router.patch("/:productName", updateProduct);
+router.patch("/update/:productName", updateProduct);
+
+//Delete a product
+router.delete("/delete/:productName", deleteProduct);
 export default router;

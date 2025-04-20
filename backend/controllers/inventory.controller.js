@@ -14,8 +14,20 @@ export const createInventory = asyncHandler(async (req, res) => {
 
 // Get All Inventories
 export const getAllInventories = asyncHandler(async (req, res) => {
-  const inventories = await Inventory.find(); // optionally populate product & warehouse
-  res.status(200).json({ message: "All inventories", inventories });
+  const inventory = await Inventory.findOne({}).populate({
+    path: "products.product",
+    select: "name stock minStockLevel category unit warehouse",
+  });
+
+  if (!inventory) return res.status(200).json({ products: [] });
+
+  res.status(200).json({
+    products: inventory.products.map((p) => ({
+      product: p.product,
+      quantity: p.quantity,
+      lastUpdated: p.lastUpdated,
+    })),
+  });
 });
 
 // Update Inventory

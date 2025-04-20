@@ -28,26 +28,14 @@ export const getProducts = async (req, res) => {
 // Create new product
 export const createProduct = async (req, res) => {
   try {
-    const {
-      name,
-      warehouse,
-      stock,
-      category,
-      description,
-      unit,
-      isPerishable,
-      defaultExpiryDays,
-      minStockLevel,
-    } = req.body;
+    const { name, warehouse, stock, ...otherFields } = req.body;
 
-    // Check for existing product with same name
+    // Existing product check
     const existingProduct = await Product.findOne({ name });
-
     if (existingProduct) {
-      // Add provided stock or increment by 1 if no stock specified
-      const increment = stock ? Number(stock) : 1;
-      existingProduct.stock += increment;
+      existingProduct.stock += Number(stock) || 1;
       await existingProduct.save();
+      await Inventory.syncProduct(existingProduct._id, existingProduct.stock);
       return res.status(200).json(existingProduct);
     }
 
@@ -55,16 +43,13 @@ export const createProduct = async (req, res) => {
     const product = new Product({
       name,
       warehouse,
-      stock: stock ? Number(stock) : 0,
-      category,
-      description,
-      unit: unit || "piece",
-      isPerishable: isPerishable || false,
-      defaultExpiryDays,
-      minStockLevel,
+      stock: stock || 0,
+      ...otherFields,
     });
 
     const savedProduct = await product.save();
+    await Inventory.addProduct(savedProduct._id, savedProduct.stock);
+
     res.status(201).json(savedProduct);
   } catch (error) {
     res.status(400).json({
@@ -72,8 +57,59 @@ export const createProduct = async (req, res) => {
       error: error.message,
     });
   }
-}; // Update product
+};
 export const updateProduct = async (req, res) => {
+  try {
+    const { productName } = req.params;
+    const updates = req.body;
+
+    const product = await Product.findOne({
+      name: decodeURIComponent(productName.replace(/\+/g, " ")),
+    });
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    const originalStock = product.stock;
+
+    // Apply updates
+    if (updates.name) {
+      const existing = await Product.findOne({ name: updates.name });
+      if (existing) throw new Error("Product name exists");
+      product.name = updates.name;
+    }
+
+    const updatableFields = [
+      "description",
+      "category",
+      "unit",
+      "minStockLevel",
+      "isPerishable",
+      "defaultExpiryDays",
+      "warehouse",
+    ];
+    updatableFields.forEach((field) => {
+      if (updates[field] !== undefined) product[field] = updates[field];
+    });
+
+    if (updates.stock !== undefined) {
+      product.stock = Number(updates.stock);
+    }
+
+    const updatedProduct = await product.save();
+
+    // Sync inventory if stock changed
+    if (updates.stock !== undefined) {
+      await Inventory.syncProduct(updatedProduct._id, updatedProduct.stock);
+    }
+
+    res.status(200).json(updatedProduct);
+  } catch (error) {
+    res.status(400).json({
+      message: "Update failed",
+      error: error.message,
+    });
+  }
+}; // Delete product
+export const deleteProduct = async (req, res) => {
   try {
     console.log("req.params:", req.params);
     const { productName } = req.params;
@@ -94,41 +130,42 @@ export const updateProduct = async (req, res) => {
     }
 
     // Name uniqueness check
-    if (updates.name && updates.name !== product.name) {
-      const existingProduct = await Product.findOne({
-        name: { $regex: new RegExp(`^${updates.name}$`, "i") },
-      });
+    // if (updates.name && updates.name !== product.name) {
+    //   const existingProduct = await Product.findOne({
+    //     name: { $regex: new RegExp(`^${updates.name}$`, "i") },
+    //   });
 
-      if (existingProduct) {
-        return res.status(409).json({
-          message: "Product name already exists",
-          solution: "Use a different product name or keep the original",
-        });
-      }
-      product.name = updates.name;
-    }
+    //   if (existingProduct) {
+    //     return res.status(409).json({
+    //       message: "Product name already exists",
+    //       solution: "Use a different product name or keep the original",
+    //     });
+    //   }
+    //   product.name = updates.name;
+    // }
     // Modified stock handling
-    const updatableFields = [
-      "description",
-      "category",
-      "unit",
-      "minStockLevel",
-      "isPerishable",
-      "defaultExpiryDays",
-      "warehouse",
-    ];
+    // const updatableFields = [
+    //   "description",
+    //   "category",
+    //   "unit",
+    //   "minStockLevel",
+    //   "isPerishable",
+    //   "defaultExpiryDays",
+    //   "warehouse",
+    // ];
 
     // Handle stock increment separately
     if (updates.stock !== undefined) {
-      product.stock += Number(updates.stock);
+      product.stock -= Number(updates.stock);
+    } else {
+      product.stock--;
     }
-
     // Update other fields
-    updatableFields.forEach((field) => {
-      if (updates[field] !== undefined) {
-        product[field] = updates[field];
-      }
-    });
+    // updatableFields.forEach((field) => {
+    //   if (updates[field] !== undefined) {
+    //     product[field] = updates[field];
+    //   }
+    // });
 
     // Warehouse validation (unchanged)
     if (updates.warehouse) {
@@ -149,47 +186,6 @@ export const updateProduct = async (req, res) => {
     res.status(200).json(updatedProduct);
   } catch (error) {
     // Error handling (unchanged)
-  }
-};
-// Delete product
-export const deleteProduct = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { productId, warehouseId } = req.params;
-
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    // Log movement when deleting a product (for stock removal)
-    const inventory = await Inventory.findOne({
-      product: productId,
-      warehouse: warehouseId,
-    });
-    if (inventory && inventory.quantity > 0) {
-      await handleMovement({
-        type: "adjustment", // You can also use 'sale' if you want to treat it as a sale
-        product: productId,
-        quantity: -inventory.quantity, // Remove all stock
-        fromWarehouse: warehouseId,
-        initiatedBy: req.user.id,
-        session,
-      });
-    }
-
-    // Delete the product
-    await product.remove({ session });
-
-    await session.commitTransaction();
-    res.status(200).json({ message: "Product deleted successfully" });
-  } catch (error) {
-    await session.abortTransaction();
-    res.status(400).json({ message: error.message });
-  } finally {
-    session.endSession();
   }
 };
 

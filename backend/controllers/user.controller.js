@@ -1,23 +1,38 @@
 import { User } from "../models/User.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-
+import Warehouse from "../models/Warehouse.js";
 export const registerUser = asyncHandler(async (req, res) => {
-  const { username, email, password, role, assignedWarehouse } = req.body;
+  const { username, email, password, role, warehouseName } = req.body;
 
   // Validation
   if (!username || !email || !password || !role) {
-    return res.status(400).json({ message: "Required fields: username, email, password, role" });
+    return res.status(400).json({
+      message: "Required fields: username, email, password, role",
+    });
   }
 
-  if (role !== 'admin' && !assignedWarehouse) {
-    return res.status(400).json({ 
-      message: "Warehouse assignment is required for non-admin roles" 
+  if (role !== "admin" && !warehouseName) {
+    return res.status(400).json({
+      message: "Warehouse name is required for non-admin roles",
     });
   }
 
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
   if (existingUser) {
-    return res.status(409).json({ message: "Email or username already exists" });
+    return res
+      .status(409)
+      .json({ message: "Email or username already exists" });
+  }
+
+  // Find warehouse if needed
+  let warehouse = null;
+  if (role !== "admin") {
+    warehouse = await Warehouse.findOne({ name: warehouseName });
+    if (!warehouse) {
+      return res.status(404).json({
+        message: "Warehouse not found with given name",
+      });
+    }
   }
 
   const newUser = new User({
@@ -25,7 +40,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     email,
     passwordHash: password, // Will be hashed by pre-save hook
     role,
-    assignedWarehouse: role === 'admin' ? undefined : assignedWarehouse
+    warehouses: warehouse ? [warehouse._id] : [],
   });
 
   await newUser.save();
@@ -37,25 +52,33 @@ export const registerUser = asyncHandler(async (req, res) => {
   newUser.refreshTokens.push(refreshToken);
   await newUser.save();
 
+  // Prepare response
+  const responseUser = {
+    id: newUser._id,
+    username: newUser.username,
+    email: newUser.email,
+    role: newUser.role,
+  };
+
+  if (warehouse) {
+    responseUser.warehouse = {
+      name: warehouseName,
+      id: warehouse._id,
+    };
+  }
+
   res.status(201).json({
     message: "User registered successfully",
-    user: {
-      id: newUser._id,
-      username: newUser.username,
-      email: newUser.email,
-      role: newUser.role,
-      assignedWarehouse: newUser.assignedWarehouse
-    },
-    tokens: { accessToken, refreshToken }
+    user: responseUser,
+    tokens: { accessToken, refreshToken },
   });
 });
-
 export const loginUser = asyncHandler(async (req, res) => {
   const { username, password } = req.body; // Now only needs username + password
 
   if (!username || !password) {
-    return res.status(400).json({ 
-      message: "Username and password are required" 
+    return res.status(400).json({
+      message: "Username and password are required",
     });
   }
 
@@ -85,9 +108,9 @@ export const loginUser = asyncHandler(async (req, res) => {
       username: user.username,
       email: user.email,
       role: user.role,
-      assignedWarehouse: user.assignedWarehouse
+      assignedWarehouse: user.assignedWarehouse,
     },
-    tokens: { accessToken, refreshToken }
+    tokens: { accessToken, refreshToken },
   });
 });
 
@@ -98,4 +121,3 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     users,
   });
 });
-
