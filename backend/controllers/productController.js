@@ -1,6 +1,7 @@
 import Product from "../models/Products.js";
 import Inventory from "../models/Inventory.js";
 import mongoose from "mongoose";
+import Warehouse from "../models/Warehouse.js";
 // import generate from "../utils/barcodeGenAPI.js";
 // import { handleMovement } from '../utils/handleMovement.js';
 
@@ -26,29 +27,53 @@ export const getProducts = async (req, res) => {
 };
 
 // Create new product
+// Create Product
+// Create Product
+// In productController.js - createProduct function
 export const createProduct = async (req, res) => {
   try {
-    const { name, warehouse, stock, ...otherFields } = req.body;
+    const { name, warehouseName, stock, ...otherFields } = req.body;
 
-    // Existing product check
+    // Validate warehouse exists
+    const warehouse = await Warehouse.findOne({
+      name: decodeURIComponent(warehouseName.replace(/\+/g, " ")),
+    });
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+
+    // Existing product logic
     const existingProduct = await Product.findOne({ name });
     if (existingProduct) {
       existingProduct.stock += Number(stock) || 1;
       await existingProduct.save();
-      await Inventory.syncProduct(existingProduct._id, existingProduct.stock);
+
+      // Correct parameter order: warehouseId, productId, quantity
+      await Warehouse.addProduct(
+        warehouse._id, // Warehouse ID
+        existingProduct._id, // Product ID
+        existingProduct.stock // Numeric quantity
+      );
+
       return res.status(200).json(existingProduct);
     }
 
-    // Create new product
+    // New product logic
     const product = new Product({
       name,
-      warehouse,
+      warehouse: warehouse._id,
       stock: stock || 0,
       ...otherFields,
     });
 
     const savedProduct = await product.save();
-    await Inventory.addProduct(savedProduct._id, savedProduct.stock);
+
+    // Correct parameter order: warehouseId, productId, quantity
+    await Warehouse.addProduct(
+      warehouse._id, // Warehouse ID
+      savedProduct._id, // Product ID
+      savedProduct.stock // Numeric quantity
+    );
 
     res.status(201).json(savedProduct);
   } catch (error) {
@@ -57,26 +82,41 @@ export const createProduct = async (req, res) => {
       error: error.message,
     });
   }
-};
+}; // Update Product
 export const updateProduct = async (req, res) => {
   try {
     const { productName } = req.params;
     const updates = req.body;
 
+    // Find product
     const product = await Product.findOne({
       name: decodeURIComponent(productName.replace(/\+/g, " ")),
     });
     if (!product) return res.status(404).json({ message: "Product not found" });
 
+    // Track original values
     const originalStock = product.stock;
+    const originalWarehouseId = product.warehouse;
 
-    // Apply updates
+    // Validate updates
     if (updates.name) {
       const existing = await Product.findOne({ name: updates.name });
       if (existing) throw new Error("Product name exists");
       product.name = updates.name;
     }
 
+    // Handle warehouse change
+    let newWarehouseId = originalWarehouseId;
+    if (updates.warehouseName) {
+      const newWarehouse = await Warehouse.findOne({
+        name: updates.warehouseName,
+      });
+      if (!newWarehouse) throw new Error("New warehouse not found");
+      newWarehouseId = newWarehouse._id;
+      product.warehouse = newWarehouseId;
+    }
+
+    // Update other fields
     const updatableFields = [
       "description",
       "category",
@@ -84,21 +124,37 @@ export const updateProduct = async (req, res) => {
       "minStockLevel",
       "isPerishable",
       "defaultExpiryDays",
-      "warehouse",
+      "stock",
     ];
     updatableFields.forEach((field) => {
-      if (updates[field] !== undefined) product[field] = updates[field];
+      if (updates[field] !== undefined) {
+        product[field] = updates[field];
+      }
     });
 
-    if (updates.stock !== undefined) {
-      product.stock = Number(updates.stock);
-    }
+    // Calculate stock delta
+    const stockDelta =
+      updates.stock !== undefined ? Number(updates.stock) - originalStock : 0;
 
+    // Save product changes
     const updatedProduct = await product.save();
 
-    // Sync inventory if stock changed
-    if (updates.stock !== undefined) {
-      await Inventory.syncProduct(updatedProduct._id, updatedProduct.stock);
+    // Sync inventory and warehouse if stock changed
+    if (stockDelta !== 0) {
+      // Update Inventory
+      await Inventory.adjustStock(
+        updatedProduct._id,
+        updatedProduct.warehouse,
+        stockDelta,
+        "stock-adjustment"
+      );
+
+      // Update Warehouse
+      await Warehouse.adjustProductQuantity(
+        updatedProduct.warehouse,
+        updatedProduct._id,
+        stockDelta
+      );
     }
 
     res.status(200).json(updatedProduct);
@@ -108,7 +164,9 @@ export const updateProduct = async (req, res) => {
       error: error.message,
     });
   }
-}; // Delete product
+};
+// Update Product
+// Delete product
 export const deleteProduct = async (req, res) => {
   try {
     console.log("req.params:", req.params);

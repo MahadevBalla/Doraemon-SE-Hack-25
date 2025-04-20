@@ -58,31 +58,21 @@ InventorySchema.statics.syncProduct = async function (productId, quantity) {
   ).populate("products.product");
 };
 
-InventorySchema.statics.adjustStock = async function (
-  productId,
-  warehouseId,
-  quantity,
-  adjustmentReason,
-  session
-) {
+// In Inventory.js - Ensure this method exists
+InventorySchema.statics.addProduct = async function (productId, quantity) {
   return this.findOneAndUpdate(
+    {},
     {
-      warehouse: warehouseId,
-      "products.product": productId,
-    },
-    {
-      $inc: { "products.$.quantity": quantity },
-      $set: {
-        "products.$.lastUpdated": new Date(),
-        "products.$.adjustmentReason": adjustmentReason,
+      $push: {
+        products: {
+          product: productId,
+          quantity: quantity,
+          lastUpdated: new Date(),
+        },
       },
     },
-    {
-      new: true,
-      upsert: true,
-      session,
-    }
-  ).populate("products.product warehouse");
+    { upsert: true, new: true }
+  ).populate("products.product");
 };
-const Inventory = mongoose.model("Inventory", InventorySchema);
-export default Inventory;
+export default mongoose.models.Inventory ||
+  mongoose.model("Inventory", InventorySchema);
