@@ -46,13 +46,13 @@ const Warehouses = () => {
           },
           credentials: 'include', // Include cookies if your API uses authentication
         });
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('API Error Response:', errorText);
           throw new Error(`Failed to fetch warehouses: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('API Response:', data);
         setWarehouses(data.data || []);
@@ -75,7 +75,7 @@ const Warehouses = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+
     // Handle nested location object
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
@@ -113,15 +113,15 @@ const Warehouses = () => {
       }
 
       const result = await response.json();
-      
+
       // Add the new warehouse to the list
       setWarehouses(prevWarehouses => [...prevWarehouses, result.data]);
-      
+
       toast({
         title: "Warehouse Added",
         description: `${newWarehouse.name} has been added to your locations.`,
       });
-      
+
       setIsAddWarehouseOpen(false);
       // Reset form
       setNewWarehouse({
@@ -149,7 +149,7 @@ const Warehouses = () => {
     const warehouseName = warehouse.name?.toLowerCase() || "";
     const warehouseCity = warehouse.location?.city?.toLowerCase() || "";
     const searchQueryLower = searchQuery.toLowerCase();
-    
+
     return warehouseName.includes(searchQueryLower) || warehouseCity.includes(searchQueryLower);
   });
 
@@ -271,7 +271,7 @@ const Warehouses = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {warehouses.length > 0 ? (
               warehouses.map((warehouse) => {
-                const usagePercentage = warehouse.capacity && warehouse.currentOccupancy 
+                const usagePercentage = warehouse.capacity && warehouse.currentOccupancy
                   ? Math.round((warehouse.currentOccupancy / warehouse.capacity) * 100)
                   : 0;
 
@@ -421,7 +421,7 @@ const Warehouses = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {warehouse.manager && typeof warehouse.manager === 'object' 
+                            {warehouse.manager && typeof warehouse.manager === 'object'
                               ? (warehouse.manager as any).name || 'No name'
                               : 'Unassigned'}
                           </TableCell>

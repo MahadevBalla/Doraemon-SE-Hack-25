@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart, LineChart, PieChart, Download, Filter, Calendar, Brain } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -65,10 +64,26 @@ const aiInsights = {
   recommendation: "Consider increasing the reorder threshold for Blue Widgets by 15% to avoid stockouts, and conduct a stock rotation in Warehouse C to optimize space utilization."
 };
 
+// Sample inventory data to send to backend
+const sampleInventoryData = [
+  { id: 1, productName: "Blue Widgets", sku: "BW-001", category: "Electronics", quantity: 348, warehouse: "Warehouse A", value: 17400, lastUpdated: "2025-04-15" },
+  { id: 2, productName: "Red Gadgets", sku: "RG-002", category: "Electronics", quantity: 256, warehouse: "Warehouse B", value: 12800, lastUpdated: "2025-04-17" },
+  { id: 3, productName: "Office Desk", sku: "OD-003", category: "Furniture", quantity: 52, warehouse: "Warehouse C", value: 15600, lastUpdated: "2025-04-10" },
+  { id: 4, productName: "Ergonomic Chair", sku: "EC-004", category: "Furniture", quantity: 78, warehouse: "Warehouse A", value: 19500, lastUpdated: "2025-04-12" },
+  { id: 5, productName: "Protein Bars", sku: "PB-005", category: "Food", quantity: 1250, warehouse: "Warehouse B", value: 6250, lastUpdated: "2025-04-19" },
+  { id: 6, productName: "Vitamin C", sku: "VC-006", category: "Pharmaceutical", quantity: 500, warehouse: "Warehouse C", value: 5000, lastUpdated: "2025-04-18" },
+  { id: 7, productName: "Laptops", sku: "LP-007", category: "Electronics", quantity: 45, warehouse: "Warehouse A", value: 45000, lastUpdated: "2025-04-14" },
+  { id: 8, productName: "Printers", sku: "PR-008", category: "Electronics", quantity: 30, warehouse: "Warehouse B", value: 9000, lastUpdated: "2025-04-16" },
+  { id: 9, productName: "Paper Reams", sku: "PR-009", category: "Office Supplies", quantity: 800, warehouse: "Warehouse C", value: 4000, lastUpdated: "2025-04-13" },
+  { id: 10, productName: "Ballpoint Pens", sku: "BP-010", category: "Office Supplies", quantity: 2500, warehouse: "Warehouse A", value: 1250, lastUpdated: "2025-04-11" }
+];
+
 const Analytics = () => {
   const [dateRange, setDateRange] = useState("30days");
   const [selectedWarehouse, setSelectedWarehouse] = useState("all");
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [aiWarehouse, setAiWarehouse] = useState("all");
+  const [aiDateRange, setAiDateRange] = useState("30days");
   const { toast } = useToast();
 
   const handleExportPDF = () => {
@@ -79,17 +94,74 @@ const Analytics = () => {
     // In a real app, this would generate and download a PDF
   };
 
-  const handleGenerateInsights = () => {
+  const handleGenerateInsights = async () => {
     setIsGeneratingReport(true);
 
-    // Simulate AI processing delay
-    setTimeout(() => {
-      setIsGeneratingReport(false);
+    try {
       toast({
-        title: "AI Analysis Complete",
-        description: "Smart summary has been generated based on your data.",
+        title: "Generating Report",
+        description: "Your smart summary report is being prepared. Download will start automatically.",
       });
-    }, 2000);
+
+      // Filter data based on selected warehouse if needed
+      const filteredData = aiWarehouse === "all"
+        ? sampleInventoryData
+        : sampleInventoryData.filter(item => {
+          // Map the UI selection value to actual warehouse name
+          const warehouseName = {
+            "wh-1": "Warehouse A",
+            "wh-2": "Warehouse B",
+            "wh-3": "Warehouse C"
+          }[aiWarehouse] || aiWarehouse;
+
+          return item.warehouse === warehouseName;
+        });
+
+      // Create a blob URL for downloading the PDF
+      const response = await fetch("http://localhost:8000/api/v1/inventory/generate-analysis-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inventoryData: filteredData }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      // Get the blob from the response
+      const blob = await response.blob();
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary anchor element and trigger download
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = "inventory_analysis_report.pdf";
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Report Generated Successfully",
+        description: "Your inventory analysis report has been downloaded.",
+      });
+    } catch (error) {
+      console.error("Error generating report:", error);
+      toast({
+        title: "Error Generating Report",
+        description: error.message || "Failed to generate the analysis report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   return (
@@ -123,8 +195,8 @@ const Analytics = () => {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="smart-summary">Smart Summary</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="smart-summary">Smart Analysis & Report</TabsTrigger>
+          {/* <TabsTrigger value="reports">Reports</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -217,7 +289,7 @@ const Analytics = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="aiDateRange">Date Range</Label>
-                    <Select defaultValue="30days">
+                    <Select value={aiDateRange} onValueChange={setAiDateRange}>
                       <SelectTrigger id="aiDateRange" className="mt-1">
                         <SelectValue placeholder="Select date range" />
                       </SelectTrigger>
@@ -231,7 +303,7 @@ const Analytics = () => {
                   </div>
                   <div>
                     <Label htmlFor="aiWarehouse">Warehouse</Label>
-                    <Select defaultValue="all">
+                    <Select value={aiWarehouse} onValueChange={setAiWarehouse}>
                       <SelectTrigger id="aiWarehouse" className="mt-1">
                         <SelectValue placeholder="Select warehouse" />
                       </SelectTrigger>
@@ -279,18 +351,11 @@ const Analytics = () => {
                   <p className="text-muted-foreground">{aiInsights.recommendation}</p>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-4">
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download PDF
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="reports">
+        {/* <TabsContent value="reports">
           <Card className="p-6">
             <CardHeader className="px-0 pt-0">
               <CardTitle>Custom Reports</CardTitle>
@@ -353,7 +418,7 @@ const Analytics = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </>
   );
