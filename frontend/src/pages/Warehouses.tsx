@@ -13,7 +13,7 @@ import { Warehouse } from "@/types";
 import { cn } from "@/lib/utils";
 
 // Define your API base URL - adjust this to match your setup
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL = "http://https://doreamon-dzoa.onrender.com/api/v1";
 
 const Warehouses = () => {
   const [searchQuery, setSearchQuery] = useState("");

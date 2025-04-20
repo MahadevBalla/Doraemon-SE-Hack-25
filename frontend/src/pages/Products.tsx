@@ -17,7 +17,7 @@ import axios from "axios";
 import { Spinner } from "@/components/ui/spinner";
 
 // API Base URL
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL = "https://doreamon-dzoa.onrender.com/api/v1";
 
 const categories = [
   "All Categories",

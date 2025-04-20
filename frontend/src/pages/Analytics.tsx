@@ -118,7 +118,7 @@ const Analytics = () => {
         });
 
       // Create a blob URL for downloading the PDF
-      const response = await fetch("http://localhost:8000/api/v1/inventory/generate-analysis-report", {
+      const response = await fetch("https://doreamon-dzoa.onrender.com/api/v1/inventory/generate-analysis-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

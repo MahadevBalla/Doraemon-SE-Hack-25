@@ -279,7 +279,7 @@ const Stock = () => {
   };
 
   const handleExportCSV = () => {
-    fetch('http://localhost:8000/api/v1/inventory/export')
+    fetch('http://https://doreamon-dzoa.onrender.com/api/v1/inventory/export')
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
