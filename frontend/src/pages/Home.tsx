@@ -17,6 +17,7 @@ import {
     Download,
     Shield
 } from 'lucide-react';
+
 import Login from './Login';
 import { Route } from 'react-router-dom';
 
@@ -53,8 +54,7 @@ export default function DoraemonLandingPage() {
             {/* Header */}
             <header className={`sticky top-0 z-10 py-4 px-6 md:px-12 flex justify-between items-center transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-blue-50'}`}>
                 <div className="flex items-center gap-2">
-                    <img src={doraemon} height="5`
-                    0px" width="50px" />
+                    <img src={doraemon} height="50px" width="50px" />
                     <h1 className="text-2xl font-bold">Doraemon</h1>
                 </div>
 
@@ -109,8 +109,8 @@ export default function DoraemonLandingPage() {
                 <div className={`flex-1 p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-blue-50'}`}>
                     <div className={`w-full aspect-video rounded-lg overflow-hidden shadow-xl flex items-center justify-center ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
                         <div className="flex flex-col items-center gap-2">
-                            <BarChart3 size={64} className={`${darkMode ? 'text-blue-400' : 'text-blue-500'}`} />
-                            <p className="text-lg font-medium">Interactive Demo Placeholder</p>
+                            <img src="https://www.wisys.com/wp-content/uploads/2020/06/manual-inventory-count.jpg" alt="Doraemon Demo" className="w-full h-auto rounded-lg" />
+                            
                         </div>
                     </div>
                 </div>
