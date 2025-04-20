@@ -80,18 +80,15 @@ Many SMBs struggle with inventory control due to:
 
 ```
 doraemon/
-├── client/              # React + Tailwind frontend
+├── frontend/              # React + Tailwind frontend
 │   ├── components/
 │   ├── pages/
 │   └── ...
-├── server/              # Node + Express backend
+├── backend/              # Node + Express backend
 │   ├── routes/
 │   ├── controllers/
 │   ├── models/
 │   └── utils/
-├── config/              # DB and Gemini API configs
-├── .env                 # Environment variables
-├── package.json         # Project metadata
 └── README.md
 ```
 
@@ -112,21 +109,21 @@ doraemon/
    cd Doreamon
    ```
 
-2. **Install server dependencies**
+2. **Install backend dependencies**
    ```bash
-   cd server
+   cd backend
    npm install
    ```
 
-3. **Install client dependencies**
+3. **Install frontend dependencies**
    ```bash
-   cd ../client
+   cd ../frontend
    npm install
    ```
 
 4. **Configure environment variables**
 
-   In `server/.env`:
+   In `backend/.env`:
    ```
    MONGO_URI=your_mongodb_uri
    JWT_SECRET=your_jwt_secret
@@ -151,26 +148,8 @@ doraemon/
 
 ---
 
-## 🤝 Contributing
-
-We welcome all contributions! Please submit issues and pull requests to help us improve.
-
----
-
-## 📜 License
-
-MIT License – use freely with attribution.
-
----
-
 ## 🙌 Acknowledgements
 
-- OpenAI's Gemini API for powering intelligent summaries  
+- Google's Gemini API for powering intelligent summaries  
 - MongoDB & Express for scalable backend  
-- React & Tailwind for modern, responsive UI  
-
----
-
-## 📧 Contact
- 
-For collaborations or suggestions, feel free to reach out via GitHub issues or pull requests.
+- React & Tailwind for modern, responsive UI
